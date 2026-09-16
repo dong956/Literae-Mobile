@@ -1,0 +1,313 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA010001 /* LiteraeMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB010001 /* LiteraeMobileApp.swift */; };
+		AA010002 /* Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB010002 /* Document.swift */; };
+		AA010003 /* PageRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB010003 /* PageRecord.swift */; };
+		AA010004 /* Manifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB010004 /* Manifest.swift */; };
+		AA010005 /* DatabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB010005 /* DatabaseManager.swift */; };
+		AA010006 /* PackageImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB010006 /* PackageImporter.swift */; };
+		AA010007 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB010007 /* MainView.swift */; };
+		AA010008 /* BookshelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB010008 /* BookshelfView.swift */; };
+		AA010009 /* DocumentDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB010009 /* DocumentDetailView.swift */; };
+		AA010010 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB010010 /* ReaderView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		11010001 /* LiteraeMobile.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiteraeMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB010001 /* LiteraeMobileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiteraeMobileApp.swift; sourceTree = "<group>"; };
+		BB010002 /* Document.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Document.swift; sourceTree = "<group>"; };
+		BB010003 /* PageRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageRecord.swift; sourceTree = "<group>"; };
+		BB010004 /* Manifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Manifest.swift; sourceTree = "<group>"; };
+		BB010005 /* DatabaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseManager.swift; sourceTree = "<group>"; };
+		BB010006 /* PackageImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackageImporter.swift; sourceTree = "<group>"; };
+		BB010007 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		BB010008 /* BookshelfView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookshelfView.swift; sourceTree = "<group>"; };
+		BB010009 /* DocumentDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentDetailView.swift; sourceTree = "<group>"; };
+		BB010010 /* ReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderView.swift; sourceTree = "<group>"; };
+		BB010011 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CC010001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		DD010001 = {
+			isa = PBXGroup;
+			children = (
+				DD010002 /* LiteraeMobile */,
+				DD010003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		DD010002 /* LiteraeMobile */ = {
+			isa = PBXGroup;
+			children = (
+				BB010001 /* LiteraeMobileApp.swift */,
+				DD010004 /* Models */,
+				DD010005 /* Services */,
+				DD010006 /* Views */,
+				BB010011 /* Info.plist */,
+			);
+			path = LiteraeMobile;
+			sourceTree = "<group>";
+		};
+		DD010003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				11010001 /* LiteraeMobile.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DD010004 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				BB010002 /* Document.swift */,
+				BB010003 /* PageRecord.swift */,
+				BB010004 /* Manifest.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		DD010005 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				BB010005 /* DatabaseManager.swift */,
+				BB010006 /* PackageImporter.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		DD010006 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				BB010007 /* MainView.swift */,
+				BB010008 /* BookshelfView.swift */,
+				BB010009 /* DocumentDetailView.swift */,
+				BB010010 /* ReaderView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		EE010001 /* LiteraeMobile */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FF010001 /* Build configuration list for PBXNativeTarget "LiteraeMobile" */;
+			buildPhases = (
+				GG010001 /* Sources */,
+				CC010001 /* Frameworks */,
+				HH010001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LiteraeMobile;
+			productName = LiteraeMobile;
+			productReference = 11010001 /* LiteraeMobile.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		JJ010001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					EE010001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = KK010001 /* Build configuration list for PBXProject "LiteraeMobile" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = zh_CN;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				zh_CN,
+				Base,
+			);
+			mainGroup = DD010001;
+			productRefGroup = DD010003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				EE010001 /* LiteraeMobile */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		HH010001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		GG010001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA010001 /* LiteraeMobileApp.swift in Sources */,
+				AA010002 /* Document.swift in Sources */,
+				AA010003 /* PageRecord.swift in Sources */,
+				AA010004 /* Manifest.swift in Sources */,
+				AA010005 /* DatabaseManager.swift in Sources */,
+				AA010006 /* PackageImporter.swift in Sources */,
+				AA010007 /* MainView.swift in Sources */,
+				AA010008 /* BookshelfView.swift in Sources */,
+				AA010009 /* DocumentDetailView.swift in Sources */,
+				AA010010 /* ReaderView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		LL010001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		LL010002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		MM010001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LiteraeMobile/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Literae 随身文库";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.literae.mobile;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		MM010002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LiteraeMobile/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Literae 随身文库";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.literae.mobile;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		KK010001 /* Build configuration list for PBXProject "LiteraeMobile" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				LL010001 /* Debug */,
+				LL010002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FF010001 /* Build configuration list for PBXNativeTarget "LiteraeMobile" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				MM010001 /* Debug */,
+				MM010002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = JJ010001 /* Project object */;
+}
