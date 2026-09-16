@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 5.6
 
 // WARNING:
 // This file is auto-generated.
@@ -31,9 +31,6 @@ let package = Package(
                 .landscapeRight,
                 .landscapeLeft,
                 .portraitUpsideDown(.when(deviceFamilies: [.pad]))
-            ],
-            capabilities: [
-                .fileAccess(.userSelectedFiles, .readWrite)
             ]
         )
     ],
