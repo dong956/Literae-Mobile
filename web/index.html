@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Literae">
-  <title>Literae Mobile</title>
+  <title>Literae Mobile · 随身文库</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -22,10 +22,11 @@
   </header>
 
   <main>
+    <!-- 初始导入界面 -->
     <section class="import-card" id="importCard">
       <p class="section-kicker">离线资料</p>
       <h2>把桌面文库带到手机</h2>
-      <p>导入 Literae 生成的 ZIP 数据包。正文只保存在当前设备，不会上传网络。</p>
+      <p>导入 Literae 桌面版导出的 ZIP 数据包。正文只保存在当前设备，不消耗网络流量，完全离线可用。</p>
       <label class="primary-action" for="packageInput">选择数据包</label>
       <input id="packageInput" type="file" accept=".zip,application/zip" hidden>
       <div class="status-line" id="importStatus" role="status" aria-live="polite"></div>
@@ -34,6 +35,7 @@
       </div>
     </section>
 
+    <!-- 已导入后的文库外壳 -->
     <section class="library-shell" id="libraryShell" hidden>
       <div class="library-meta">
         <div>
@@ -43,28 +45,88 @@
         <button class="text-button" id="replaceLibraryButton" type="button">更新资料</button>
       </div>
 
-      <form class="search-box" id="searchForm">
-        <span aria-hidden="true">⌕</span>
-        <input id="searchInput" type="search" autocomplete="off" enterkeyhint="search" placeholder="检索人名、地名或文献内容">
-        <button type="submit">检索</button>
-      </form>
+      <!-- 视图切换选项卡：书架浏览 / 全文检索 -->
+      <nav class="view-tabs" role="tablist" aria-label="模式切换">
+        <button class="view-tab active" id="shelfTabBtn" type="button" role="tab" aria-selected="true" aria-controls="shelfPanel">书架目次</button>
+        <button class="view-tab" id="searchTabBtn" type="button" role="tab" aria-selected="false" aria-controls="searchPanel">全文检索</button>
+      </nav>
 
-      <div class="search-summary" id="searchSummary">输入关键词开始检索</div>
-      <div class="result-list" id="resultList"></div>
-      <button class="secondary-action" id="loadMoreButton" type="button" hidden>继续显示</button>
+      <!-- 分类与标签筛选胶囊栏 -->
+      <div class="facet-bar" id="facetBar" role="region" aria-label="分类筛选">
+        <div class="facet-scroller" id="facetPills"></div>
+      </div>
+
+      <!-- 书架浏览面板 -->
+      <section class="view-panel shelf-panel" id="shelfPanel" role="tabpanel" aria-labelledby="shelfTabBtn">
+        <div class="panel-summary" id="shelfSummary">正在载入书架...</div>
+        <div class="shelf-grid" id="shelfList"></div>
+      </section>
+
+      <!-- 全文检索面板 -->
+      <section class="view-panel search-panel" id="searchPanel" role="tabpanel" aria-labelledby="searchTabBtn" hidden>
+        <form class="search-box" id="searchForm">
+          <span aria-hidden="true">⌕</span>
+          <input id="searchInput" type="search" autocomplete="off" enterkeyhint="search" placeholder="检索人名、地名、事件或文献原句">
+          <button type="submit">检索</button>
+        </form>
+
+        <div class="panel-summary" id="searchSummary">输入关键词开始检索</div>
+        <div class="result-list" id="resultList"></div>
+        <button class="secondary-action" id="loadMoreButton" type="button" hidden>继续显示更多结果</button>
+      </section>
     </section>
   </main>
 
-  <dialog class="reader" id="readerDialog">
-    <div class="reader-toolbar">
-      <button class="icon-button quiet" id="closeReaderButton" type="button" aria-label="关闭正文">←</button>
-      <div class="reader-heading">
-        <strong id="readerTitle"></strong>
-        <span id="readerMeta"></span>
+  <!-- 书籍详情与目录抽屉 -->
+  <dialog class="doc-drawer" id="docDrawer">
+    <div class="drawer-header">
+      <button class="icon-button quiet" id="closeDrawerButton" type="button" aria-label="关闭详情">←</button>
+      <div class="drawer-heading">
+        <h3 id="drawerTitle">文献详情</h3>
+        <span id="drawerSubtitle"></span>
       </div>
     </div>
-    <article id="readerText"></article>
+    <div class="drawer-content">
+      <div class="meta-block" id="drawerMetaDetails"></div>
+      <div class="drawer-action-row">
+        <button class="primary-action full-width" id="startReadingBtn" type="button">从第 1 页开始通读</button>
+      </div>
+      <div class="catalog-section">
+        <h4>已收录 OCR 页码</h4>
+        <div class="page-pill-grid" id="drawerPageList"></div>
+      </div>
+    </div>
   </dialog>
+
+  <!-- 沉浸式阅读器 -->
+  <dialog class="reader" id="readerDialog">
+    <div class="reader-toolbar">
+      <div class="reader-toolbar-main">
+        <button class="icon-button quiet" id="closeReaderButton" type="button" aria-label="关闭阅读">←</button>
+        <div class="reader-heading">
+          <strong id="readerTitle"></strong>
+          <span id="readerMeta"></span>
+        </div>
+      </div>
+      <div class="reader-tools">
+        <button class="tool-btn" id="fontSizeBtn" type="button" title="调整字号" aria-label="调整字号">字</button>
+        <button class="tool-btn" id="themeBtn" type="button" title="切换底色" aria-label="切换底色">色</button>
+        <button class="tool-btn" id="copyCitationBtn" type="button" title="复制引用出处" aria-label="复制引用出处">引用</button>
+      </div>
+    </div>
+
+    <article id="readerText" class="reader-article"></article>
+
+    <!-- 阅读器翻页导航栏 -->
+    <div class="reader-nav" id="readerNav">
+      <button class="nav-arrow-btn" id="prevPageBtn" type="button">上一页</button>
+      <div class="page-indicator" id="pageIndicator">第 1 页</div>
+      <button class="nav-arrow-btn" id="nextPageBtn" type="button">下一页</button>
+    </div>
+  </dialog>
+
+  <!-- 浮动提示 Toast -->
+  <div class="toast" id="toastNotice" role="status" aria-live="polite" hidden></div>
 
   <script type="module" src="app.js"></script>
 </body>

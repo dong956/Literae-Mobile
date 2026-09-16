@@ -17,22 +17,69 @@ const importProgress = document.getElementById('importProgress');
 const libraryShell = document.getElementById('libraryShell');
 const libraryDate = document.getElementById('libraryDate');
 const libraryCount = document.getElementById('libraryCount');
+
+// 模式切换与筛选
+const shelfTabBtn = document.getElementById('shelfTabBtn');
+const searchTabBtn = document.getElementById('searchTabBtn');
+const shelfPanel = document.getElementById('shelfPanel');
+const searchPanel = document.getElementById('searchPanel');
+const facetBar = document.getElementById('facetBar');
+const facetPills = document.getElementById('facetPills');
+const shelfSummary = document.getElementById('shelfSummary');
+const shelfList = document.getElementById('shelfList');
+
+// 检索表单
 const searchForm = document.getElementById('searchForm');
 const searchInput = document.getElementById('searchInput');
 const searchSummary = document.getElementById('searchSummary');
 const resultList = document.getElementById('resultList');
 const loadMoreButton = document.getElementById('loadMoreButton');
+
+// 书籍详情抽屉
+const docDrawer = document.getElementById('docDrawer');
+const closeDrawerButton = document.getElementById('closeDrawerButton');
+const drawerTitle = document.getElementById('drawerTitle');
+const drawerSubtitle = document.getElementById('drawerSubtitle');
+const drawerMetaDetails = document.getElementById('drawerMetaDetails');
+const startReadingBtn = document.getElementById('startReadingBtn');
+const drawerPageList = document.getElementById('drawerPageList');
+
+// 沉浸式阅读器
 const readerDialog = document.getElementById('readerDialog');
 const closeReaderButton = document.getElementById('closeReaderButton');
 const readerTitle = document.getElementById('readerTitle');
 const readerMeta = document.getElementById('readerMeta');
 const readerText = document.getElementById('readerText');
+const fontSizeBtn = document.getElementById('fontSizeBtn');
+const themeBtn = document.getElementById('themeBtn');
+const copyCitationBtn = document.getElementById('copyCitationBtn');
+const prevPageBtn = document.getElementById('prevPageBtn');
+const nextPageBtn = document.getElementById('nextPageBtn');
+const pageIndicator = document.getElementById('pageIndicator');
+const toastNotice = document.getElementById('toastNotice');
 
+// 运行时状态
 let activeDatabase = null;
 let activeManifest = null;
+let allDocuments = [];
+let activeFacet = null; // null | { type: 'category'|'tag', value: string }
+let currentView = 'shelf'; // 'shelf' | 'search'
+
 let lastQuery = '';
 let resultLimit = INITIAL_RESULT_LIMIT;
 let searchGeneration = 0;
+
+// 阅读器状态
+let currentDoc = null;
+let currentPage = 1;
+let currentDocPages = [];
+let currentTerms = [];
+
+// 阅读器偏好设置
+const FONT_SIZES = ['1rem', '1.14rem', '1.3rem', '1.5rem'];
+let fontSizeIndex = Number(localStorage.getItem('literaeFontSizeIndex') || 1);
+const THEMES = ['default', 'cream', 'night'];
+let themeIndex = Number(localStorage.getItem('literaeThemeIndex') || 0);
 
 function readUint64(view, offset) {
   const low = view.getUint32(offset, true);
@@ -291,6 +338,18 @@ function validatePage(record, lineNumber) {
   }
 }
 
+async function cleanupOrphanDatabases(activeName) {
+  if (!('databases' in indexedDB)) return;
+  try {
+    const list = await indexedDB.databases();
+    for (const info of list) {
+      if (info.name && info.name.startsWith('literae-mobile-import-') && info.name !== activeName) {
+        await deleteDatabase(info.name);
+      }
+    }
+  } catch {}
+}
+
 async function importPackage(file) {
   if (!file) return;
   let stagingDatabase = null;
@@ -323,8 +382,8 @@ async function importPackage(file) {
     localStorage.setItem('literaeActiveDatabase', stagingName);
     if (previousName && previousName !== stagingName) await deleteDatabase(previousName);
     setImportProgress(100, '导入完成，全部资料可离线检索');
-    showLibrary();
     cleanupOrphanDatabases(stagingName);
+    await showLibrary();
   } catch (error) {
     if (stagingDatabase) stagingDatabase.close();
     await deleteDatabase(stagingName);
@@ -338,18 +397,6 @@ async function importPackage(file) {
   }
 }
 
-async function cleanupOrphanDatabases(activeName) {
-  if (!('databases' in indexedDB)) return;
-  try {
-    const list = await indexedDB.databases();
-    for (const info of list) {
-      if (info.name && info.name.startsWith('literae-mobile-import-') && info.name !== activeName) {
-        await deleteDatabase(info.name);
-      }
-    }
-  } catch {}
-}
-
 async function loadActiveLibrary() {
   const databaseName = localStorage.getItem('literaeActiveDatabase');
   if (!databaseName) return;
@@ -360,7 +407,7 @@ async function loadActiveLibrary() {
     const record = await requestResult(transaction.objectStore('meta').get('manifest'));
     activeManifest = record?.value || null;
     if (!activeManifest) throw new Error('本地文库清单缺失');
-    showLibrary();
+    await showLibrary();
   } catch (error) {
     activeDatabase?.close();
     activeDatabase = null;
@@ -370,12 +417,224 @@ async function loadActiveLibrary() {
   }
 }
 
-function showLibrary() {
+async function showLibrary() {
   importCard.hidden = true;
   libraryShell.hidden = false;
   const date = activeManifest?.created_at ? new Date(activeManifest.created_at) : null;
   libraryDate.textContent = date && !Number.isNaN(date.valueOf()) ? `桌面版导出于 ${date.toLocaleString()}` : '已导入离线文库';
   libraryCount.textContent = `${Number(activeManifest?.document_count || 0).toLocaleString()} 份文档 · ${Number(activeManifest?.page_count || 0).toLocaleString()} 页文本`;
+
+  await loadAllDocuments();
+  renderFacetPills();
+  renderBookshelf();
+}
+
+async function loadAllDocuments() {
+  if (!activeDatabase) return;
+  const transaction = activeDatabase.transaction('documents', 'readonly');
+  const store = transaction.objectStore('documents');
+  return new Promise((resolve, reject) => {
+    const request = store.getAll();
+    request.onsuccess = () => {
+      allDocuments = request.result || [];
+      resolve(allDocuments);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function renderFacetPills() {
+  facetPills.replaceChildren();
+
+  // 统计所有分类与标签
+  const categoryCounts = new Map();
+  const tagCounts = new Map();
+  for (const doc of allDocuments) {
+    if (doc.category) {
+      categoryCounts.set(doc.category, (categoryCounts.get(doc.category) || 0) + 1);
+    }
+    for (const tag of doc.tags || []) {
+      tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+    }
+  }
+
+  // "全部" 胶囊
+  const allPill = document.createElement('button');
+  allPill.type = 'button';
+  allPill.className = `facet-pill ${activeFacet === null ? 'active' : ''}`;
+  allPill.textContent = `全部 (${allDocuments.length})`;
+  allPill.addEventListener('click', () => {
+    activeFacet = null;
+    renderFacetPills();
+    if (currentView === 'shelf') renderBookshelf();
+    else if (searchInput.value.trim()) runSearch();
+  });
+  facetPills.append(allPill);
+
+  // 分类胶囊
+  for (const [cat, count] of categoryCounts.entries()) {
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    const isActive = activeFacet?.type === 'category' && activeFacet?.value === cat;
+    pill.className = `facet-pill ${isActive ? 'active' : ''}`;
+    pill.textContent = `${cat} (${count})`;
+    pill.addEventListener('click', () => {
+      activeFacet = isActive ? null : {type: 'category', value: cat};
+      renderFacetPills();
+      if (currentView === 'shelf') renderBookshelf();
+      else if (searchInput.value.trim()) runSearch();
+    });
+    facetPills.append(pill);
+  }
+
+  // 标签胶囊（显示前 15 个高频标签）
+  const sortedTags = Array.from(tagCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 15);
+  for (const [tag, count] of sortedTags) {
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    const isActive = activeFacet?.type === 'tag' && activeFacet?.value === tag;
+    pill.className = `facet-pill ${isActive ? 'active' : ''}`;
+    pill.textContent = `#${tag} (${count})`;
+    pill.addEventListener('click', () => {
+      activeFacet = isActive ? null : {type: 'tag', value: tag};
+      renderFacetPills();
+      if (currentView === 'shelf') renderBookshelf();
+      else if (searchInput.value.trim()) runSearch();
+    });
+    facetPills.append(pill);
+  }
+}
+
+function filterDocument(doc) {
+  if (!activeFacet) return true;
+  if (activeFacet.type === 'category') return doc.category === activeFacet.value;
+  if (activeFacet.type === 'tag') return (doc.tags || []).includes(activeFacet.value);
+  return true;
+}
+
+function renderBookshelf() {
+  shelfList.replaceChildren();
+  const filtered = allDocuments.filter(filterDocument);
+  shelfSummary.textContent = activeFacet
+    ? `当前筛选包含 ${filtered.length.toLocaleString()} 份文献`
+    : `书架共收录 ${filtered.length.toLocaleString()} 份文献（点击查看目录或通读）`;
+
+  for (const doc of filtered) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'shelf-card';
+
+    const title = document.createElement('h3');
+    title.textContent = doc.title || '未命名文献';
+
+    const meta = document.createElement('div');
+    meta.className = 'book-meta';
+    const metaParts = [];
+    if (doc.author) metaParts.push(doc.author);
+    if (doc.year) metaParts.push(doc.year);
+    if (doc.publisher) metaParts.push(doc.publisher);
+    meta.textContent = metaParts.join(' · ') || '出版信息未详';
+
+    const badges = document.createElement('div');
+    badges.className = 'shelf-badges';
+    if (doc.category) {
+      const catBadge = document.createElement('span');
+      catBadge.className = 'badge-tag';
+      catBadge.textContent = doc.category;
+      badges.append(catBadge);
+    }
+    for (const tag of (doc.tags || []).slice(0, 2)) {
+      const tagBadge = document.createElement('span');
+      tagBadge.className = 'badge-tag';
+      tagBadge.textContent = tag;
+      badges.append(tagBadge);
+    }
+
+    const pageCount = document.createElement('span');
+    pageCount.className = 'badge-pages';
+    pageCount.textContent = doc.page_count ? `共 ${doc.page_count} 页` : '已收录';
+    badges.append(pageCount);
+
+    card.append(title, meta, badges);
+    card.addEventListener('click', () => openDocDrawer(doc));
+    shelfList.append(card);
+  }
+}
+
+async function getDocumentPages(docId) {
+  const transaction = activeDatabase.transaction('pages', 'readonly');
+  const store = transaction.objectStore('pages');
+  const index = store.index('by_document');
+  return new Promise((resolve, reject) => {
+    const pages = [];
+    const request = index.openCursor(IDBKeyRange.only(docId));
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor) {
+        pages.push(cursor.value.page);
+        cursor.continue();
+      } else {
+        pages.sort((a, b) => a - b);
+        resolve(pages);
+      }
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function openDocDrawer(doc) {
+  drawerTitle.textContent = doc.title || '未命名文献';
+  drawerSubtitle.textContent = [doc.author, doc.year, doc.publisher].filter(Boolean).join(' · ');
+
+  drawerMetaDetails.replaceChildren();
+  const fields = [
+    ['责任者', doc.author || '未录入'],
+    ['出版年代', doc.year || '未录入'],
+    ['出版者', doc.publisher || '未录入'],
+    ['文献分类', doc.category || '未分类'],
+    ['标签分类', (doc.tags || []).join(', ') || '无'],
+    ['总页数', doc.page_count ? `${doc.page_count} 页` : '未标明']
+  ];
+  for (const [label, val] of fields) {
+    const row = document.createElement('div');
+    row.className = 'meta-item';
+    row.innerHTML = `<span class="meta-label">${label}</span><span class="meta-val">${val}</span>`;
+    drawerMetaDetails.append(row);
+  }
+
+  drawerPageList.replaceChildren();
+  const pages = await getDocumentPages(doc.id);
+
+  startReadingBtn.onclick = () => {
+    docDrawer.close();
+    openReader(doc, pages[0] || 1, []);
+  };
+
+  for (const pageNum of pages) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'page-btn';
+    btn.textContent = `第 ${pageNum} 页`;
+    btn.addEventListener('click', () => {
+      docDrawer.close();
+      openReader(doc, pageNum, []);
+    });
+    drawerPageList.append(btn);
+  }
+
+  docDrawer.showModal();
+}
+
+function switchView(view) {
+  currentView = view;
+  const isShelf = view === 'shelf';
+  shelfTabBtn.classList.toggle('active', isShelf);
+  shelfTabBtn.setAttribute('aria-selected', isShelf ? 'true' : 'false');
+  searchTabBtn.classList.toggle('active', !isShelf);
+  searchTabBtn.setAttribute('aria-selected', !isShelf ? 'true' : 'false');
+  shelfPanel.hidden = !isShelf;
+  searchPanel.hidden = isShelf;
+  if (isShelf) renderBookshelf();
 }
 
 function queryTerms(query) {
@@ -397,6 +656,10 @@ function makeSnippet(text, terms, radius = 64) {
 
 function highlightedFragment(text, terms) {
   const fragment = document.createDocumentFragment();
+  if (!terms.length) {
+    fragment.append(document.createTextNode(text));
+    return fragment;
+  }
   const lower = text.toLocaleLowerCase();
   let cursor = 0;
   while (cursor < text.length) {
@@ -465,6 +728,7 @@ function renderResults(pages, documents, terms, limit) {
   resultList.replaceChildren();
   for (const page of pages) {
     const documentRecord = documents.get(page.document_id) || {title: '未命名文档'};
+    if (!filterDocument(documentRecord)) continue;
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'result-card';
@@ -476,7 +740,7 @@ function renderResults(pages, documents, terms, limit) {
     const snippet = document.createElement('p');
     snippet.append(highlightedFragment(makeSnippet(page.text, terms), terms));
     card.append(title, meta, snippet);
-    card.addEventListener('click', () => openReader(documentRecord, page, terms));
+    card.addEventListener('click', () => openReader(documentRecord, page.page, terms));
     resultList.append(card);
   }
   loadMoreButton.hidden = pages.length < limit;
@@ -503,38 +767,160 @@ async function runSearch() {
     const documents = await getDocuments(Array.from(new Set(pages.map(page => page.document_id))));
     renderResults(pages, documents, terms, resultLimit);
     searchSummary.textContent = pages.length
-      ? `已显示 ${pages.length.toLocaleString()} 条命中${pages.length >= resultLimit ? '，可继续加载' : ''}`
-      : '没有找到包含全部关键词的页面';
+      ? `已检索到 ${pages.length.toLocaleString()} 条相关页面${pages.length >= resultLimit ? '，可继续加载' : ''}`
+      : '未找到匹配所有关键词的页面';
   } catch (error) {
     searchSummary.textContent = `检索失败：${error.message}`;
   }
 }
 
-function openReader(documentRecord, page, terms) {
-  readerTitle.textContent = documentRecord.title || '未命名文档';
-  readerMeta.textContent = documentMeta(documentRecord, page.page);
-  readerText.replaceChildren(highlightedFragment(page.text, terms));
-  readerDialog.showModal();
-  readerText.scrollTop = 0;
+async function getPageText(docId, pageNum) {
+  const transaction = activeDatabase.transaction('pages', 'readonly');
+  const store = transaction.objectStore('pages');
+  const record = await requestResult(store.get([docId, pageNum]));
+  return record?.text || '';
 }
+
+async function openReader(documentRecord, pageNum, terms = []) {
+  currentDoc = documentRecord;
+  currentPage = pageNum;
+  currentTerms = terms;
+  currentDocPages = await getDocumentPages(documentRecord.id);
+
+  await renderReaderCurrentPage();
+  readerDialog.showModal();
+}
+
+async function renderReaderCurrentPage() {
+  if (!currentDoc) return;
+  readerTitle.textContent = currentDoc.title || '未命名文档';
+  readerMeta.textContent = documentMeta(currentDoc, currentPage);
+
+  const text = await getPageText(currentDoc.id, currentPage);
+  readerText.replaceChildren(highlightedFragment(text, currentTerms));
+  readerText.scrollTop = 0;
+
+  // 更新翻页条状态
+  const currentIndex = currentDocPages.indexOf(currentPage);
+  prevPageBtn.disabled = currentIndex <= 0;
+  nextPageBtn.disabled = currentIndex < 0 || currentIndex >= currentDocPages.length - 1;
+  pageIndicator.textContent = currentDocPages.length
+    ? `第 ${currentPage} 页 / 共 ${currentDocPages.length} 页`
+    : `第 ${currentPage} 页`;
+}
+
+function showToast(message) {
+  toastNotice.textContent = message;
+  toastNotice.hidden = false;
+  window.setTimeout(() => {
+    toastNotice.hidden = true;
+  }, 2000);
+}
+
+function copyCitation() {
+  if (!currentDoc) return;
+  const selection = window.getSelection()?.toString().trim();
+  const textToQuote = selection || readerText.textContent.slice(0, 160).trim();
+  const citation = `“${textToQuote}”\n——《${currentDoc.title}》${currentDoc.author ? '，' + currentDoc.author : ''}${currentDoc.year ? '，' + currentDoc.year : ''}，第 ${currentPage} 页。`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(citation).then(() => {
+      showToast('已复制出处引文');
+    }).catch(() => {
+      fallbackCopy(citation);
+    });
+  } else {
+    fallbackCopy(citation);
+  }
+}
+
+function fallbackCopy(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    showToast('已复制出处引文');
+  } catch {
+    showToast('无法复制，请手动选中文本');
+  }
+  document.body.removeChild(textarea);
+}
+
+function applyFontSize() {
+  document.documentElement.style.setProperty('--reader-font-size', FONT_SIZES[fontSizeIndex]);
+  localStorage.setItem('literaeFontSizeIndex', String(fontSizeIndex));
+}
+
+function applyTheme() {
+  document.body.classList.remove('theme-cream', 'theme-night');
+  const theme = THEMES[themeIndex];
+  if (theme !== 'default') {
+    document.body.classList.add(`theme-${theme}`);
+  }
+  localStorage.setItem('literaeThemeIndex', String(themeIndex));
+}
+
+// 按钮与交互绑定
+shelfTabBtn.addEventListener('click', () => switchView('shelf'));
+searchTabBtn.addEventListener('click', () => switchView('search'));
 
 openLibraryButton.addEventListener('click', () => packageInput.click());
 replaceLibraryButton.addEventListener('click', () => packageInput.click());
 packageInput.addEventListener('change', () => importPackage(packageInput.files?.[0]));
+
 searchForm.addEventListener('submit', event => {
   event.preventDefault();
   resultLimit = INITIAL_RESULT_LIMIT;
   runSearch();
 });
+
 loadMoreButton.addEventListener('click', () => {
   resultLimit += INITIAL_RESULT_LIMIT;
   searchInput.value = lastQuery;
   runSearch();
 });
+
+closeDrawerButton.addEventListener('click', () => docDrawer.close());
 closeReaderButton.addEventListener('click', () => readerDialog.close());
+
+prevPageBtn.addEventListener('click', () => {
+  const currentIndex = currentDocPages.indexOf(currentPage);
+  if (currentIndex > 0) {
+    currentPage = currentDocPages[currentIndex - 1];
+    renderReaderCurrentPage();
+  }
+});
+
+nextPageBtn.addEventListener('click', () => {
+  const currentIndex = currentDocPages.indexOf(currentPage);
+  if (currentIndex >= 0 && currentIndex < currentDocPages.length - 1) {
+    currentPage = currentDocPages[currentIndex + 1];
+    renderReaderCurrentPage();
+  }
+});
+
+fontSizeBtn.addEventListener('click', () => {
+  fontSizeIndex = (fontSizeIndex + 1) % FONT_SIZES.length;
+  applyFontSize();
+  showToast(`已调整字号 (${fontSizeIndex + 1}/${FONT_SIZES.length})`);
+});
+
+themeBtn.addEventListener('click', () => {
+  themeIndex = (themeIndex + 1) % THEMES.length;
+  applyTheme();
+  const names = ['古籍宣纸', '柔和米白', '夜读暗色'];
+  showToast(`底色：${names[themeIndex]}`);
+});
+
+copyCitationBtn.addEventListener('click', copyCitation);
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
 
+// 初始化偏好与文库
+applyFontSize();
+applyTheme();
 loadActiveLibrary();
