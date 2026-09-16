@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3ead8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Literae">
+  <title>Literae Mobile</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="paper-grain" aria-hidden="true"></div>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">LITERAE · MOBILE</p>
+      <h1>随身文库</h1>
+    </div>
+    <button class="icon-button" id="openLibraryButton" type="button" title="导入文库" aria-label="导入文库">＋</button>
+  </header>
+
+  <main>
+    <section class="import-card" id="importCard">
+      <p class="section-kicker">离线资料</p>
+      <h2>把桌面文库带到手机</h2>
+      <p>导入 Literae 生成的 ZIP 数据包。正文只保存在当前设备，不会上传网络。</p>
+      <label class="primary-action" for="packageInput">选择数据包</label>
+      <input id="packageInput" type="file" accept=".zip,application/zip" hidden>
+      <div class="status-line" id="importStatus" role="status" aria-live="polite"></div>
+      <div class="progress-track" id="importProgressTrack" hidden>
+        <div class="progress-fill" id="importProgress"></div>
+      </div>
+    </section>
+
+    <section class="library-shell" id="libraryShell" hidden>
+      <div class="library-meta">
+        <div>
+          <span id="libraryDate">尚未导入</span>
+          <strong id="libraryCount">0 份文档</strong>
+        </div>
+        <button class="text-button" id="replaceLibraryButton" type="button">更新资料</button>
+      </div>
+
+      <form class="search-box" id="searchForm">
+        <span aria-hidden="true">⌕</span>
+        <input id="searchInput" type="search" autocomplete="off" enterkeyhint="search" placeholder="检索人名、地名或文献内容">
+        <button type="submit">检索</button>
+      </form>
+
+      <div class="search-summary" id="searchSummary">输入关键词开始检索</div>
+      <div class="result-list" id="resultList"></div>
+      <button class="secondary-action" id="loadMoreButton" type="button" hidden>继续显示</button>
+    </section>
+  </main>
+
+  <dialog class="reader" id="readerDialog">
+    <div class="reader-toolbar">
+      <button class="icon-button quiet" id="closeReaderButton" type="button" aria-label="关闭正文">←</button>
+      <div class="reader-heading">
+        <strong id="readerTitle"></strong>
+        <span id="readerMeta"></span>
+      </div>
+    </div>
+    <article id="readerText"></article>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
