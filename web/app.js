@@ -606,13 +606,18 @@ function renderBookshelf() {
       : `书库共收录 ${filtered.length.toLocaleString()} 份文献（点击查看目录或通读）`;
   }
 
+  const shelfWatermark = document.getElementById('shelfWatermark');
+  if (shelfWatermark) {
+    shelfWatermark.hidden = (filtered.length > 0) || Boolean(query);
+  }
+
   if (!filtered.length) {
-    const emptyNotice = document.createElement('div');
-    emptyNotice.className = 'empty-shelf-notice';
-    emptyNotice.textContent = query
-      ? `未找到书名或责任者包含“${query}”的文献，可尝试更换关键词或清除筛选。`
-      : '书库暂无收录文献';
-    shelfList.append(emptyNotice);
+    if (query) {
+      const emptyNotice = document.createElement('div');
+      emptyNotice.className = 'empty-shelf-notice has-box';
+      emptyNotice.textContent = `未找到书名或责任者包含“${query}”的文献，可尝试更换关键词或清除筛选。`;
+      shelfList.append(emptyNotice);
+    }
     return;
   }
 

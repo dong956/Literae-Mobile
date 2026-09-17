@@ -144,18 +144,16 @@ public struct BookshelfView: View {
             .padding(.bottom, 4)
 
             ZStack {
-                // 书架栏背景：斜体虚化正中的名言
-                VStack(spacing: 14) {
-                    Text("上穷碧落下黄泉\n动手动脚找东西")
-                        .font(.system(size: 24, weight: .light, design: .serif))
-                        .italic()
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(Color.primary.opacity(0.13))
-                        .blur(radius: 0.3)
-                        .lineSpacing(10)
+                if filteredDocuments.isEmpty {
+                    VStack {
+                        Text("空白文库")
+                            .font(.system(size: 34, weight: .regular, design: .serif))
+                            .foregroundColor(Color.primary.opacity(0.18))
+                            .tracking(6)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .allowsHitTesting(false)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .allowsHitTesting(false)
 
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 14)], spacing: 14) {
@@ -232,18 +230,13 @@ public struct BookshelfView: View {
             .padding(.bottom, 8)
 
             ZStack {
-                if searchGroups.isEmpty {
-                    VStack(spacing: 14) {
-                        Text("上穷碧落下黄泉\n动手动脚找东西")
-                            .font(.system(size: 24, weight: .light, design: .serif))
-                            .italic()
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(Color.primary.opacity(0.13))
-                            .blur(radius: 0.3)
-                            .lineSpacing(10)
+                if searchGroups.isEmpty && !searchQuery.isEmpty {
+                    VStack(spacing: 10) {
+                        Text("未在全库中找到匹配结果")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .allowsHitTesting(false)
                 }
 
                 ScrollView {

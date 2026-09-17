@@ -1,4 +1,4 @@
-const CACHE_NAME = 'literae-mobile-v8';
+const CACHE_NAME = 'literae-mobile-v9';
 const APP_SHELL = [
   './',
   './index.html',

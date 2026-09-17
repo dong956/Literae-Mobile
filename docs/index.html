@@ -42,7 +42,6 @@
   <main>
     <!-- 初始导入界面 -->
     <section class="import-card" id="importCard">
-      <div class="import-card-watermark" aria-hidden="true">上穷碧落下黄泉<br>动手动脚找东西</div>
       <h2>把桌面文库带到手机</h2>
       <p>从 Literae 桌面版导出 ZIP 数据包，再在这里导入。题名与识别文本只保存在当前设备。</p>
       <label class="primary-action" for="packageInput">选择数据包</label>
@@ -97,7 +96,7 @@
           </div>
         </div>
         <div class="shelf-container">
-          <div class="shelf-watermark" aria-hidden="true">上穷碧落下黄泉<br>动手动脚找东西</div>
+          <div class="shelf-watermark" id="shelfWatermark" aria-hidden="true" hidden>空白文库</div>
           <div class="shelf-grid" id="shelfList"></div>
         </div>
       </section>
