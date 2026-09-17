@@ -6,6 +6,10 @@ public struct DocumentDetailView: View {
     @State private var selectedPageForReader: Int? = nil
     @State private var searchQuery: String = ""
     @State private var searchResults: [(document: Document, page: Int, text: String)] = []
+    @State private var jumpPageText: String = ""
+    @State private var targetJumpPage: Int? = nil
+    @State private var showJumpAlert: Bool = false
+    @State private var jumpAlertMessage: String = ""
 
     private let db = DatabaseManager.shared
 
@@ -16,6 +20,19 @@ public struct DocumentDetailView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                if let target = targetJumpPage {
+                    NavigationLink(
+                        destination: ReaderView(document: document, initialPage: target),
+                        isActive: Binding(
+                            get: { targetJumpPage != nil },
+                            set: { if !$0 { targetJumpPage = nil } }
+                        )
+                    ) {
+                        EmptyView()
+                    }
+                    .hidden()
+                }
+
                 // 文献元数据卡片
                 VStack(alignment: .leading, spacing: 10) {
                     Text(document.title)
@@ -99,8 +116,45 @@ public struct DocumentDetailView: View {
 
                 // 页面目录网格
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("已收录 OCR 页码 (\(pages.count) 页)")
-                        .font(.headline)
+                    HStack(alignment: .center) {
+                        Text("页码")
+                            .font(.headline)
+                        if !pages.isEmpty {
+                            Text("(\(pages.count) 页)")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        // 页码快速跳转
+                        HStack(spacing: 6) {
+                            TextField(document.pageCount > 0 ? "1-\(document.pageCount)" : "页码", text: $jumpPageText)
+                                .keyboardType(.numberPad)
+                                .textFieldStyle(.plain)
+                                .multilineTextAlignment(.center)
+                                .font(.subheadline)
+                                .frame(width: 64, height: 32)
+                                .background(Color.white)
+                                .cornerRadius(8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                                )
+                                .onSubmit { jumpToPage() }
+
+                            Button(action: jumpToPage) {
+                                Text("跳转")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 10)
+                                    .frame(height: 32)
+                                    .background(Color(red: 0.72, green: 0.20, blue: 0.16))
+                                    .cornerRadius(8)
+                            }
+                        }
+                    }
 
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 75), spacing: 10)], spacing: 10) {
                         ForEach(pages, id: \.self) { page in
@@ -126,9 +180,27 @@ public struct DocumentDetailView: View {
         }
         .navigationTitle("文献目次")
         .navigationBarTitleDisplayMode(.inline)
+        .alert(isPresented: $showJumpAlert) {
+            Alert(title: Text("提示"), message: Text(jumpAlertMessage), dismissButton: .default(Text("确定")))
+        }
         .onAppear {
             pages = db.fetchAvailablePages(for: document.id)
         }
+    }
+
+    private func jumpToPage() {
+        let clean = jumpPageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let page = Int(clean), page >= 1 else {
+            jumpAlertMessage = "请输入有效的正整数页码"
+            showJumpAlert = true
+            return
+        }
+        if document.pageCount > 0 && page > document.pageCount {
+            jumpAlertMessage = "该文献总共 \(document.pageCount) 页，请输入 1 至 \(document.pageCount) 之间的页码"
+            showJumpAlert = true
+            return
+        }
+        targetJumpPage = page
     }
 
     private func metaRow(label: String, value: String) -> some View {

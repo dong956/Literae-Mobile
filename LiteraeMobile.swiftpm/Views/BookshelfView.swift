@@ -1,8 +1,19 @@
 import SwiftUI
 
 public enum LibraryMode: String, CaseIterable, Identifiable {
-    case shelf = "书架"
+    case shelf = "书库"
     case search = "全库检索"
+
+    public var id: String { rawValue }
+}
+
+public enum ShelfSort: String, CaseIterable, Identifiable {
+    case latest = "最近导入"
+    case oldest = "最早导入"
+    case titleAsc = "题名（正序）"
+    case titleDesc = "题名（倒序）"
+    case yearDesc = "出版时间（新到旧）"
+    case yearAsc = "出版时间（旧到新）"
 
     public var id: String { rawValue }
 }
@@ -26,17 +37,21 @@ public struct DocumentSearchGroup: Identifiable {
 }
 
 public struct BookshelfView: View {
+    @Binding var selectedDocument: Document?
     @State private var mode: LibraryMode = .shelf
     @State private var documents: [Document] = []
     @State private var selectedFacet: String? = nil
     @State private var shelfSearchText: String = ""
+    @State private var shelfSort: ShelfSort = .latest
     @State private var searchQuery: String = ""
     @State private var searchGroups: [DocumentSearchGroup] = []
     @State private var searchSort: SearchSort = .matchCount
 
     private let db = DatabaseManager.shared
 
-    public init() {}
+    public init(selectedDocument: Binding<Document?> = .constant(nil)) {
+        self._selectedDocument = selectedDocument
+    }
 
     public var body: some View {
         VStack(spacing: 0) {
@@ -87,13 +102,13 @@ public struct BookshelfView: View {
         }
     }
 
-    // 书架视图
+    // 书库视图
     private var shelfContent: some View {
         VStack(spacing: 0) {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
-                TextField("在书架中搜索书名或责任者", text: $shelfSearchText)
+                TextField("在书库中搜索书名或责任者", text: $shelfSearchText)
                     .textFieldStyle(.plain)
                 if !shelfSearchText.isEmpty {
                     Button(action: { shelfSearchText = "" }) {
@@ -112,27 +127,62 @@ public struct BookshelfView: View {
 
             HStack {
                 Text(shelfSearchText.isEmpty
-                     ? (selectedFacet == nil ? "书架共收录 \(filteredDocuments.count) 份文献" : "当前分类包含 \(filteredDocuments.count) 份文献")
+                     ? (selectedFacet == nil ? "书库共收录 \(filteredDocuments.count) 份文献" : "当前分类包含 \(filteredDocuments.count) 份文献")
                      : "找到 \(filteredDocuments.count) 部匹配文献")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
+                Picker("排序", selection: $shelfSort) {
+                    ForEach(ShelfSort.allCases) { option in
+                        Text(option.rawValue).tag(option)
+                    }
+                }
+                .pickerStyle(.menu)
+                .font(.caption)
             }
             .padding(.horizontal)
             .padding(.bottom, 4)
 
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 14)], spacing: 14) {
-                    ForEach(filteredDocuments) { doc in
-                        NavigationLink(destination: DocumentDetailView(document: doc)) {
-                            BookCardView(document: doc)
-                        }
-                        .buttonStyle(.plain)
-                    }
+            ZStack {
+                // 书架栏背景：斜体虚化正中的名言
+                VStack(spacing: 14) {
+                    Text("上穷碧落下黄泉\n动手动脚找东西")
+                        .font(.system(size: 24, weight: .light, design: .serif))
+                        .italic()
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(Color.primary.opacity(0.13))
+                        .blur(radius: 0.3)
+                        .lineSpacing(10)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 20)
-                .frame(maxWidth: 1000)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .allowsHitTesting(false)
+
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 14)], spacing: 14) {
+                        ForEach(filteredDocuments) { doc in
+                            NavigationLink(
+                                destination: DocumentDetailView(document: doc),
+                                tag: doc.id,
+                                selection: Binding(
+                                    get: { selectedDocument?.id },
+                                    set: { newId in
+                                        if let newId = newId {
+                                            selectedDocument = filteredDocuments.first { $0.id == newId }
+                                        } else {
+                                            selectedDocument = nil
+                                        }
+                                    }
+                                )
+                            ) {
+                                BookCardView(document: doc)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 20)
+                    .frame(maxWidth: 1000)
+                }
             }
         }
     }
@@ -181,15 +231,31 @@ public struct BookshelfView: View {
             .padding(.horizontal)
             .padding(.bottom, 8)
 
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach($searchGroups) { $group in
-                        DocumentSearchGroupCard(group: $group, query: searchQuery)
+            ZStack {
+                if searchGroups.isEmpty {
+                    VStack(spacing: 14) {
+                        Text("上穷碧落下黄泉\n动手动脚找东西")
+                            .font(.system(size: 24, weight: .light, design: .serif))
+                            .italic()
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(Color.primary.opacity(0.13))
+                            .blur(radius: 0.3)
+                            .lineSpacing(10)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .allowsHitTesting(false)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 20)
-                .frame(maxWidth: 900)
+
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach($searchGroups) { $group in
+                            DocumentSearchGroupCard(group: $group, query: searchQuery)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 20)
+                    .frame(maxWidth: 900)
+                }
             }
         }
     }
@@ -236,6 +302,51 @@ public struct BookshelfView: View {
                 $0.tags.contains { $0.lowercased().contains(q) }
             }
         }
+        return sortShelfDocuments(list)
+    }
+
+    private func sortShelfDocuments(_ docs: [Document]) -> [Document] {
+        var list = docs
+        switch shelfSort {
+        case .latest:
+            let docOrder = Dictionary(uniqueKeysWithValues: documents.enumerated().map { ($0.element.id, $0.offset) })
+            list.sort { (docOrder[$0.id] ?? -1) > (docOrder[$1.id] ?? -1) }
+        case .oldest:
+            let docOrder = Dictionary(uniqueKeysWithValues: documents.enumerated().map { ($0.element.id, $0.offset) })
+            list.sort { (docOrder[$0.id] ?? 999999) < (docOrder[$1.id] ?? 999999) }
+        case .titleAsc:
+            list.sort { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+        case .titleDesc:
+            list.sort { $0.title.localizedStandardCompare($1.title) == .orderedDescending }
+        case .yearDesc:
+            var dated: [Document] = []
+            var undated: [Document] = []
+            for d in list {
+                if extractYear(d.year) > 0 { dated.append(d) } else { undated.append(d) }
+            }
+            list = dated.sorted {
+                let y1 = extractYear($0.year)
+                let y2 = extractYear($1.year)
+                if y1 != y2 { return y1 > y2 }
+                return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+            } + undated.sorted {
+                $0.title.localizedStandardCompare($1.title) == .orderedAscending
+            }
+        case .yearAsc:
+            var dated: [Document] = []
+            var undated: [Document] = []
+            for d in list {
+                if extractYear(d.year) > 0 { dated.append(d) } else { undated.append(d) }
+            }
+            list = dated.sorted {
+                let y1 = extractYear($0.year)
+                let y2 = extractYear($1.year)
+                if y1 != y2 { return y1 < y2 }
+                return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+            } + undated.sorted {
+                $0.title.localizedStandardCompare($1.title) == .orderedAscending
+            }
+        }
         return list
     }
 
@@ -258,25 +369,20 @@ public struct BookshelfView: View {
 
     private func groupAndSortResults(rawResults: [(document: Document, page: Int, text: String)]) {
         var groupsDict: [String: DocumentSearchGroup] = [:]
-        var order: [String] = []
-        for result in rawResults {
-            if var existing = groupsDict[result.document.id] {
-                existing.matches.append((page: result.page, text: result.text))
-                groupsDict[result.document.id] = existing
-            } else {
-                groupsDict[result.document.id] = DocumentSearchGroup(
-                    document: result.document,
-                    matches: [(page: result.page, text: result.text)]
-                )
-                order.append(result.document.id)
+        for r in rawResults {
+            if groupsDict[r.document.id] == nil {
+                groupsDict[r.document.id] = DocumentSearchGroup(document: r.document, matches: [])
             }
+            groupsDict[r.document.id]?.matches.append((page: r.page, text: r.text))
         }
-        var groups = order.compactMap { groupsDict[$0] }
+
+        var groups = Array(groupsDict.values)
         for i in 0..<groups.count {
             groups[i].matches.sort { $0.page < $1.page }
         }
-        sortGroups(&groups)
+
         searchGroups = groups
+        sortResults()
     }
 
     private func sortResults() {
@@ -303,7 +409,7 @@ public struct BookshelfView: View {
         case .latest:
             let docOrder = Dictionary(uniqueKeysWithValues: documents.enumerated().map { ($0.element.id, $0.offset) })
             groups.sort {
-                (docOrder[$0.document.id] ?? 999999) < (docOrder[$1.document.id] ?? 999999)
+                (docOrder[$0.document.id] ?? -1) > (docOrder[$1.document.id] ?? -1)
             }
         case .titleAsc:
             groups.sort {

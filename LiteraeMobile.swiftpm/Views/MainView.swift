@@ -9,7 +9,7 @@ public struct MainView: View {
 
     public var body: some View {
         NavigationSplitView {
-            BookshelfView()
+            BookshelfView(selectedDocument: $selectedDocument)
                 .navigationTitle("Literae")
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
@@ -24,18 +24,43 @@ public struct MainView: View {
             if let doc = selectedDocument {
                 DocumentDetailView(document: doc)
             } else {
-                VStack(spacing: 12) {
+                VStack(spacing: 16) {
                     Image(systemName: "books.vertical.fill")
                         .font(.system(size: 64))
                         .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96).opacity(0.28))
-                    Text("从左侧书架选择文献开始通读")
-                        .font(.headline)
+
+                    Text("随身文库 · 离线阅读")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+
+                    Text("从 Mac 桌面端 Literae 导出 ZIP 数据包\n在当前设备导入后即可随身离线查阅与全文检索")
+                        .font(.subheadline)
+                        .multilineTextAlignment(.center)
                         .foregroundColor(.secondary)
+                        .lineSpacing(5)
+
+                    Button(action: { isShowingFilePicker = true }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.arrow.down.fill")
+                            Text("选择数据包导入")
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(Color(red: 0.19, green: 0.36, blue: 0.96))
+                        .cornerRadius(12)
+                    }
+                    .padding(.top, 6)
                 }
+                .padding(32)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(red: 0.96, green: 0.97, blue: 0.99))
             }
         }
+        .navigationSplitViewStyle(.balanced)
         .fileImporter(
             isPresented: $isShowingFilePicker,
             allowedContentTypes: [.zip, .data],

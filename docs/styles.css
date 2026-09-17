@@ -106,12 +106,31 @@ h4 { font-size: 0.95rem; color: var(--muted); }
 .icon-button:active { transform: scale(0.94); }
 
 .import-card {
+  position: relative;
+  overflow: hidden;
   margin-top: min(8vh, 64px);
   padding: clamp(24px, 6vw, 48px);
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--paper-card);
   box-shadow: var(--shadow);
+}
+
+.import-card-watermark {
+  position: absolute;
+  right: clamp(16px, 4vw, 36px);
+  bottom: clamp(16px, 3vw, 28px);
+  text-align: right;
+  font-family: "Songti SC", "SimSun", "STSong", Georgia, serif;
+  font-style: italic;
+  font-size: clamp(1.1rem, 2.5vw, 1.45rem);
+  line-height: 1.8;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  opacity: 0.10;
+  pointer-events: none;
+  user-select: none;
+  white-space: pre-line;
 }
 
 .import-card > p:not(.section-kicker) { max-width: 36rem; color: var(--muted); line-height: 1.8; }
@@ -326,15 +345,75 @@ h4 { font-size: 0.95rem; color: var(--muted); }
   background: rgba(0, 0, 0, 0.05);
 }
 
+.shelf-container {
+  position: relative;
+  min-height: 320px;
+}
+
+.shelf-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-family: "Songti SC", "SimSun", "STSong", Georgia, serif;
+  font-style: italic;
+  font-size: clamp(1.4rem, 4vw, 1.9rem);
+  line-height: 2;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+  opacity: 0.12;
+  pointer-events: none;
+  user-select: none;
+  white-space: pre-line;
+  z-index: 0;
+}
+
+.shelf-grid {
+  position: relative;
+  z-index: 1;
+}
+
 .empty-shelf-notice {
+  position: relative;
+  z-index: 1;
   grid-column: 1 / -1;
   padding: 36px 20px;
   text-align: center;
   color: var(--muted);
   font-size: 0.9rem;
-  background: var(--paper-card);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(4px);
   border: 1px dashed var(--line);
   border-radius: 12px;
+}
+
+.shelf-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+.shelf-toolbar .panel-summary {
+  margin: 0;
+}
+.shelf-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+.shelf-options select {
+  min-height: 34px;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--paper-light);
+  font-size: 0.84rem;
 }
 
 .search-options { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: 10px 2px 2px; color: var(--muted); font-size: 0.84rem; }
@@ -574,7 +653,59 @@ mark { padding: 0 0.12em; color: inherit; background: #f6d177; border-radius: 2p
 .meta-val { color: var(--ink); font-weight: 500; }
 
 .catalog-section { margin-top: 24px; }
-.catalog-section h4 { margin-bottom: 12px; }
+.catalog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.catalog-header h4 { margin: 0; }
+.page-jump-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.page-jump-form input {
+  width: 68px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-card);
+  color: var(--ink);
+  font-size: 0.84rem;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+.page-jump-form input::-webkit-outer-spin-button,
+.page-jump-form input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.page-jump-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(184, 51, 42, 0.15);
+}
+.page-jump-form button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.12s ease;
+}
+.page-jump-form button:hover {
+  opacity: 0.92;
+}
+.page-jump-form button:active {
+  transform: scale(0.96);
+}
 
 .document-search-section { margin-top: 24px; }
 .document-search-section h4 { margin-bottom: 10px; }

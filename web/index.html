@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffffff">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Literae Mobile">
+  <meta name="apple-mobile-web-app-title" content="Literae M">
   <title>Literae Mobile · 随身文库</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -42,6 +42,7 @@
   <main>
     <!-- 初始导入界面 -->
     <section class="import-card" id="importCard">
+      <div class="import-card-watermark" aria-hidden="true">上穷碧落下黄泉<br>动手动脚找东西</div>
       <h2>把桌面文库带到手机</h2>
       <p>从 Literae 桌面版导出 ZIP 数据包，再在这里导入。题名与识别文本只保存在当前设备。</p>
       <label class="primary-action" for="packageInput">选择数据包</label>
@@ -62,9 +63,9 @@
         <button class="text-button" id="replaceLibraryButton" type="button">更新资料</button>
       </div>
 
-      <!-- 视图切换选项卡：书架 / 全库检索 -->
+      <!-- 视图切换选项卡：书库 / 全库检索 -->
       <nav class="view-tabs" role="tablist" aria-label="模式切换">
-        <button class="view-tab active" id="shelfTabBtn" type="button" role="tab" aria-selected="true" aria-controls="shelfPanel">书架</button>
+        <button class="view-tab active" id="shelfTabBtn" type="button" role="tab" aria-selected="true" aria-controls="shelfPanel">书库</button>
         <button class="view-tab" id="searchTabBtn" type="button" role="tab" aria-selected="false" aria-controls="searchPanel">全库检索</button>
       </nav>
 
@@ -73,16 +74,32 @@
         <div class="facet-scroller" id="facetPills"></div>
       </div>
 
-      <!-- 书架浏览面板 -->
+      <!-- 书库浏览面板 -->
       <section class="view-panel shelf-panel" id="shelfPanel" role="tabpanel" aria-labelledby="shelfTabBtn">
         <form class="search-box shelf-search-box" id="shelfSearchForm" role="search" onsubmit="return false;">
           <span aria-hidden="true">⌕</span>
-          <input id="shelfSearchInput" type="search" autocomplete="off" enterkeyhint="search" placeholder="在书架中搜索书名或责任者">
+          <input id="shelfSearchInput" type="search" autocomplete="off" enterkeyhint="search" placeholder="在书库中搜索书名或责任者">
           <button id="shelfSearchClearBtn" type="button" class="shelf-clear-btn" hidden aria-label="清除搜索">✕</button>
         </form>
 
-        <div class="panel-summary" id="shelfSummary">正在载入书架...</div>
-        <div class="shelf-grid" id="shelfList"></div>
+        <div class="shelf-toolbar">
+          <div class="panel-summary" id="shelfSummary">正在载入书库...</div>
+          <div class="shelf-options">
+            <label for="shelfSort">排序</label>
+            <select id="shelfSort">
+              <option value="latest">最近导入</option>
+              <option value="oldest">最早导入</option>
+              <option value="title_asc">题名（正序）</option>
+              <option value="title_desc">题名（倒序）</option>
+              <option value="year_desc">出版时间（新到旧）</option>
+              <option value="year_asc">出版时间（旧到新）</option>
+            </select>
+          </div>
+        </div>
+        <div class="shelf-container">
+          <div class="shelf-watermark" aria-hidden="true">上穷碧落下黄泉<br>动手动脚找东西</div>
+          <div class="shelf-grid" id="shelfList"></div>
+        </div>
       </section>
 
       <!-- 全库检索面板 -->
@@ -136,7 +153,13 @@
         <div class="document-result-list" id="documentResultList"></div>
       </section>
       <div class="catalog-section">
-        <h4>已收录 OCR 页码</h4>
+        <div class="catalog-header">
+          <h4>页码</h4>
+          <form class="page-jump-form" id="pageJumpForm" onsubmit="return false;">
+            <input id="pageJumpInput" type="number" min="1" placeholder="页码" enterkeyhint="go">
+            <button type="submit" id="pageJumpBtn">跳转</button>
+          </form>
+        </div>
         <div class="page-pill-grid" id="drawerPageList"></div>
       </div>
     </div>
@@ -189,7 +212,7 @@
         <ol>
           <li>在 Mac 上打开 Literae：设置 → 移动端 → 生成数据包 → 下载 ZIP。</li>
           <li>将 ZIP 隔空投送到 iPhone/iPad 的“文件”App，或传到 Android 的“下载”目录；不要解压。</li>
-          <li>回到 Literae Mobile，点“选择数据包”，选中 ZIP。导入完成后即可使用书架、书内检索和全库检索。</li>
+          <li>回到 Literae Mobile，点“选择数据包”，选中 ZIP。导入完成后即可使用书库、书内检索和全库检索。</li>
         </ol>
         <p>数据导入后保存在本机。更换浏览器、清除网站数据或卸载网页 App 前，请保留原 ZIP 以便重新导入。</p>
       </section>

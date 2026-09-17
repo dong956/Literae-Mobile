@@ -30,6 +30,7 @@ const shelfList = document.getElementById('shelfList');
 const shelfSearchForm = document.getElementById('shelfSearchForm');
 const shelfSearchInput = document.getElementById('shelfSearchInput');
 const shelfSearchClearBtn = document.getElementById('shelfSearchClearBtn');
+const shelfSort = document.getElementById('shelfSort');
 
 // 检索表单
 const searchForm = document.getElementById('searchForm');
@@ -46,6 +47,9 @@ const drawerTitle = document.getElementById('drawerTitle');
 const drawerSubtitle = document.getElementById('drawerSubtitle');
 const drawerMetaDetails = document.getElementById('drawerMetaDetails');
 const startReadingBtn = document.getElementById('startReadingBtn');
+const pageJumpForm = document.getElementById('pageJumpForm');
+const pageJumpInput = document.getElementById('pageJumpInput');
+const pageJumpBtn = document.getElementById('pageJumpBtn');
 const drawerPageList = document.getElementById('drawerPageList');
 const documentSearchForm = document.getElementById('documentSearchForm');
 const documentSearchInput = document.getElementById('documentSearchInput');
@@ -531,6 +535,49 @@ function filterDocument(doc) {
   return true;
 }
 
+function sortLibraryDocuments(docs, sortMode = 'latest') {
+  const list = [...docs];
+  if (sortMode === 'title_asc') {
+    return list.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'zh-CN'));
+  }
+  if (sortMode === 'title_desc') {
+    return list.sort((a, b) => (b.title || '').localeCompare(a.title || '', 'zh-CN'));
+  }
+  if (sortMode === 'year_desc' || sortMode === 'year_asc') {
+    const dated = [];
+    const undated = [];
+    for (const doc of list) {
+      if (extractPublicationYear(doc)) {
+        dated.push(doc);
+      } else {
+        undated.push(doc);
+      }
+    }
+    if (sortMode === 'year_desc') {
+      dated.sort((a, b) => extractPublicationYear(b) - extractPublicationYear(a) || (a.title || '').localeCompare(b.title || '', 'zh-CN'));
+    } else {
+      dated.sort((a, b) => extractPublicationYear(a) - extractPublicationYear(b) || (a.title || '').localeCompare(b.title || '', 'zh-CN'));
+    }
+    undated.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'zh-CN'));
+    return dated.concat(undated);
+  }
+  if (sortMode === 'oldest') {
+    const docIndexMap = new Map(allDocuments.map((doc, idx) => [doc.id, idx]));
+    return list.sort((a, b) => {
+      const idxA = docIndexMap.has(a.id) ? docIndexMap.get(a.id) : 999999;
+      const idxB = docIndexMap.has(b.id) ? docIndexMap.get(b.id) : 999999;
+      return idxA - idxB;
+    });
+  }
+  // 默认 latest：最新导入在最前
+  const docIndexMap = new Map(allDocuments.map((doc, idx) => [doc.id, idx]));
+  return list.sort((a, b) => {
+    const idxA = docIndexMap.has(a.id) ? docIndexMap.get(a.id) : -1;
+    const idxB = docIndexMap.has(b.id) ? docIndexMap.get(b.id) : -1;
+    return idxB - idxA;
+  });
+}
+
 function renderBookshelf() {
   shelfList.replaceChildren();
   const query = (shelfSearchInput?.value || '').trim();
@@ -551,12 +598,12 @@ function renderBookshelf() {
 
   if (query) {
     shelfSummary.textContent = filtered.length
-      ? `在书架中找到 ${filtered.length.toLocaleString()} 部匹配“${query}”的文献`
-      : `未在书架中找到匹配“${query}”的文献`;
+      ? `在书库中找到 ${filtered.length.toLocaleString()} 部匹配“${query}”的文献`
+      : `未在书库中找到匹配“${query}”的文献`;
   } else {
     shelfSummary.textContent = activeFacet
       ? `当前筛选包含 ${filtered.length.toLocaleString()} 份文献`
-      : `书架共收录 ${filtered.length.toLocaleString()} 份文献（点击查看目录或通读）`;
+      : `书库共收录 ${filtered.length.toLocaleString()} 份文献（点击查看目录或通读）`;
   }
 
   if (!filtered.length) {
@@ -564,12 +611,15 @@ function renderBookshelf() {
     emptyNotice.className = 'empty-shelf-notice';
     emptyNotice.textContent = query
       ? `未找到书名或责任者包含“${query}”的文献，可尝试更换关键词或清除筛选。`
-      : '暂无收录文献';
+      : '书库暂无收录文献';
     shelfList.append(emptyNotice);
     return;
   }
 
-  for (const doc of filtered) {
+  const sortMode = shelfSort?.value || 'latest';
+  const sortedDocs = sortLibraryDocuments(filtered, sortMode);
+
+  for (const doc of sortedDocs) {
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'shelf-card';
@@ -686,7 +736,30 @@ async function openDocDrawer(doc) {
     drawerPageList.append(btn);
   }
 
+  if (pageJumpInput) {
+    pageJumpInput.value = '';
+    pageJumpInput.placeholder = doc.page_count ? `1-${doc.page_count}` : '页码';
+  }
+
   docDrawer.showModal();
+}
+
+function jumpToDrawerDocumentPage() {
+  if (!drawerDocument) return;
+  const raw = (pageJumpInput?.value || '').trim();
+  const pageNum = parseInt(raw, 10);
+  if (isNaN(pageNum) || pageNum < 1) {
+    alert('请输入有效的正整数页码');
+    pageJumpInput?.focus();
+    return;
+  }
+  if (drawerDocument.page_count && pageNum > drawerDocument.page_count) {
+    alert(`该文献总共 ${drawerDocument.page_count} 页，请输入 1 至 ${drawerDocument.page_count} 之间的页码`);
+    pageJumpInput?.focus();
+    return;
+  }
+  docDrawer.close();
+  openReader(drawerDocument, pageNum, []);
 }
 
 function switchView(view) {
@@ -906,9 +979,9 @@ function sortSearchResultGroups(groups, sortMode, terms = []) {
   if (sortMode === 'latest') {
     const docIndexMap = new Map(allDocuments.map((doc, idx) => [doc.id, idx]));
     return [...groups].sort((a, b) => {
-      const idxA = docIndexMap.has(a.document_id) ? docIndexMap.get(a.document_id) : 999999;
-      const idxB = docIndexMap.has(b.document_id) ? docIndexMap.get(b.document_id) : 999999;
-      return idxA - idxB;
+      const idxA = docIndexMap.has(a.document_id) ? docIndexMap.get(a.document_id) : -1;
+      const idxB = docIndexMap.has(b.document_id) ? docIndexMap.get(b.document_id) : -1;
+      return idxB - idxA;
     });
   }
   return [...groups].sort((a, b) => b.matchCount - a.matchCount || a.title.localeCompare(b.title, 'zh-CN'));
@@ -1307,6 +1380,17 @@ shelfSearchClearBtn?.addEventListener('click', () => {
 shelfSearchForm?.addEventListener('submit', event => {
   event.preventDefault();
   renderBookshelf();
+});
+
+// 书库排序交互
+shelfSort?.addEventListener('change', () => {
+  renderBookshelf();
+});
+
+// 页码快速跳转交互
+pageJumpForm?.addEventListener('submit', event => {
+  event.preventDefault();
+  jumpToDrawerDocumentPage();
 });
 
 function browserGuide() {
