@@ -1,0 +1,19 @@
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Archives & export data
+*.zip
+*.zip.part
+*.literaemobile
+
+# Xcode & SwiftPM build outputs
+.build/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+DerivedData/
+
+# Node / Editor
+.vscode/
+.idea/

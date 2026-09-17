@@ -7,10 +7,10 @@
 ## 1. 核心架构与工程分布
 
 * **主工程 (Literae Desktop)**：
-  - 本地路径：`/Users/dongdong/Desktop/Literae`
+  - 本地路径：`~/Desktop/Literae`
   - 角色定位：古籍数字化管理中枢，负责 PDF 存储、API/本地 OCR 识别、元数据标引以及离线包导出。
 * **移动端工程 (Literae Mobile)**：
-  - 本地路径：`/Users/dongdong/Desktop/Literae-Mobile`
+  - 本地路径：`~/Desktop/Literae-Mobile`
   - 远程仓库：`https://github.com/dong956/Literae-Mobile.git` (分支: `main`)
   - 角色定位：独立、轻量、高雅的古籍离线随身阅读器，承接桌面端导出的纯文本包。
 * **通信协议规范 (V1 Schema)**：
@@ -41,8 +41,8 @@
 
 ### 2.4 iPad Swift Playgrounds 免 Mac 部署靶场
 - **应用包位置**：
-  - 工程源码：`/Users/dongdong/Desktop/Literae-Mobile/LiteraeMobile.swiftpm`
-  - 桌面直投文件：`/Users/dongdong/Desktop/LiteraeMobile.swiftpm` (及 `.zip`)
+  - 工程源码：`~/Desktop/Literae-Mobile/LiteraeMobile.swiftpm`
+  - 桌面直投文件：`~/Desktop/LiteraeMobile.swiftpm` (及 `.zip`)
 - **配置要点**：`Package.swift` 使用 `// swift-tools-version: 5.6`，完美向下兼容 iPadOS 16/17 上安装的各种版本 Swift Playgrounds。
 
 ---
