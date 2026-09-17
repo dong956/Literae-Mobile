@@ -23,7 +23,7 @@ Literae Mobile is the lightweight, privacy-first companion to the Literae deskto
 2. Tap **Share**. If Safari first shows **More**, tap it and then tap **Share**.
 3. Scroll down and choose **Add to Home Screen**. If the option is missing, scroll to the bottom, tap **Edit Actions**, and add it.
 4. Enable **Open as Web App**, then tap **Add**.
-5. Open Literae Mobile from the black **L** icon on the Home Screen.
+5. Open Literae Mobile from the **Literae Mobile** icon on the Home Screen.
 
 ### Install on iPhone or iPad with Chrome
 

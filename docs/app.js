@@ -27,6 +27,9 @@ const facetBar = document.getElementById('facetBar');
 const facetPills = document.getElementById('facetPills');
 const shelfSummary = document.getElementById('shelfSummary');
 const shelfList = document.getElementById('shelfList');
+const shelfSearchForm = document.getElementById('shelfSearchForm');
+const shelfSearchInput = document.getElementById('shelfSearchInput');
+const shelfSearchClearBtn = document.getElementById('shelfSearchClearBtn');
 
 // 检索表单
 const searchForm = document.getElementById('searchForm');
@@ -530,10 +533,41 @@ function filterDocument(doc) {
 
 function renderBookshelf() {
   shelfList.replaceChildren();
-  const filtered = allDocuments.filter(filterDocument);
-  shelfSummary.textContent = activeFacet
-    ? `当前筛选包含 ${filtered.length.toLocaleString()} 份文献`
-    : `书架共收录 ${filtered.length.toLocaleString()} 份文献（点击查看目录或通读）`;
+  const query = (shelfSearchInput?.value || '').trim();
+  const normalizedQuery = query.normalize('NFKC').toLocaleLowerCase();
+
+  const filtered = allDocuments.filter(doc => {
+    if (!filterDocument(doc)) return false;
+    if (!normalizedQuery) return true;
+    const title = (doc.title || '').normalize('NFKC').toLocaleLowerCase();
+    const author = (doc.author || '').normalize('NFKC').toLocaleLowerCase();
+    const category = (doc.category || '').normalize('NFKC').toLocaleLowerCase();
+    const tags = (doc.tags || []).map(t => t.normalize('NFKC').toLocaleLowerCase());
+    return title.includes(normalizedQuery)
+      || author.includes(normalizedQuery)
+      || category.includes(normalizedQuery)
+      || tags.some(t => t.includes(normalizedQuery));
+  });
+
+  if (query) {
+    shelfSummary.textContent = filtered.length
+      ? `在书架中找到 ${filtered.length.toLocaleString()} 部匹配“${query}”的文献`
+      : `未在书架中找到匹配“${query}”的文献`;
+  } else {
+    shelfSummary.textContent = activeFacet
+      ? `当前筛选包含 ${filtered.length.toLocaleString()} 份文献`
+      : `书架共收录 ${filtered.length.toLocaleString()} 份文献（点击查看目录或通读）`;
+  }
+
+  if (!filtered.length) {
+    const emptyNotice = document.createElement('div');
+    emptyNotice.className = 'empty-shelf-notice';
+    emptyNotice.textContent = query
+      ? `未找到书名或责任者包含“${query}”的文献，可尝试更换关键词或清除筛选。`
+      : '暂无收录文献';
+    shelfList.append(emptyNotice);
+    return;
+  }
 
   for (const doc of filtered) {
     const card = document.createElement('button');
@@ -541,12 +575,22 @@ function renderBookshelf() {
     card.className = 'shelf-card';
 
     const title = document.createElement('h3');
-    title.textContent = doc.title || '未命名文献';
+    if (query) {
+      title.append(highlightedFragment(doc.title || '未命名文献', [query]));
+    } else {
+      title.textContent = doc.title || '未命名文献';
+    }
 
     const meta = document.createElement('div');
     meta.className = 'book-meta';
     const metaParts = [];
-    if (doc.author) metaParts.push(doc.author);
+    if (doc.author) {
+      if (query && doc.author.toLocaleLowerCase().includes(query.toLocaleLowerCase())) {
+        metaParts.push(doc.author);
+      } else {
+        metaParts.push(doc.author);
+      }
+    }
     if (doc.year) metaParts.push(doc.year);
     if (doc.publisher) metaParts.push(doc.publisher);
     meta.textContent = metaParts.join(' · ') || '出版信息未详';
@@ -1246,6 +1290,25 @@ applyFontSize();
 applyTheme();
 loadActiveLibrary();
 
+// 书架书名检索交互
+shelfSearchInput?.addEventListener('input', () => {
+  const hasValue = Boolean(shelfSearchInput.value.trim());
+  shelfSearchClearBtn.hidden = !hasValue;
+  renderBookshelf();
+});
+
+shelfSearchClearBtn?.addEventListener('click', () => {
+  shelfSearchInput.value = '';
+  shelfSearchClearBtn.hidden = true;
+  renderBookshelf();
+  shelfSearchInput.focus();
+});
+
+shelfSearchForm?.addEventListener('submit', event => {
+  event.preventDefault();
+  renderBookshelf();
+});
+
 function browserGuide() {
   const ua = navigator.userAgent;
   const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -1253,7 +1316,7 @@ function browserGuide() {
   if (isIOS && isChrome) {
     return {
       title: 'iPhone / iPad · Chrome',
-      steps: ['点地址栏右侧的“分享”按钮。', '选择“添加到主屏幕”。', '确认名称后点“添加”，以后从黑色 L 图标进入。'],
+      steps: ['点地址栏右侧的“分享”按钮。', '选择“添加到主屏幕”。', '确认名称后点“添加”，以后从 Literae Mobile 图标进入。'],
       prompt: '点地址栏右侧“分享” → “添加到主屏幕”。'
     };
   }
@@ -1267,7 +1330,7 @@ function browserGuide() {
   if (/Android/.test(ua) && isChrome) {
     return {
       title: 'Android · Chrome',
-      steps: ['点地址栏右侧的“⋮”菜单。', '选择“添加到主屏幕”或“安装应用”。', '点“安装”，以后从桌面上的黑色 L 图标进入。'],
+      steps: ['点地址栏右侧的“⋮”菜单。', '选择“添加到主屏幕”或“安装应用”。', '点“安装”，以后从桌面上的 Literae Mobile 图标进入。'],
       prompt: '点右上角“⋮” → “添加到主屏幕” → “安装”。'
     };
   }

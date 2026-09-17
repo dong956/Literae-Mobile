@@ -29,6 +29,7 @@ public struct BookshelfView: View {
     @State private var mode: LibraryMode = .shelf
     @State private var documents: [Document] = []
     @State private var selectedFacet: String? = nil
+    @State private var shelfSearchText: String = ""
     @State private var searchQuery: String = ""
     @State private var searchGroups: [DocumentSearchGroup] = []
     @State private var searchSort: SearchSort = .matchCount
@@ -88,17 +89,51 @@ public struct BookshelfView: View {
 
     // 书架视图
     private var shelfContent: some View {
-        ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 14)], spacing: 14) {
-                ForEach(filteredDocuments) { doc in
-                    NavigationLink(destination: DocumentDetailView(document: doc)) {
-                        BookCardView(document: doc)
+        VStack(spacing: 0) {
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
+                TextField("在书架中搜索书名或责任者", text: $shelfSearchText)
+                    .textFieldStyle(.plain)
+                if !shelfSearchText.isEmpty {
+                    Button(action: { shelfSearchText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
                 }
             }
-            .padding()
-            .frame(maxWidth: 1000)
+            .padding(10)
+            .background(Color.white)
+            .cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.12), lineWidth: 1))
+            .padding(.horizontal)
+            .padding(.top, 8)
+            .padding(.bottom, 6)
+
+            HStack {
+                Text(shelfSearchText.isEmpty
+                     ? (selectedFacet == nil ? "书架共收录 \(filteredDocuments.count) 份文献" : "当前分类包含 \(filteredDocuments.count) 份文献")
+                     : "找到 \(filteredDocuments.count) 部匹配文献")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 4)
+
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 14)], spacing: 14) {
+                    ForEach(filteredDocuments) { doc in
+                        NavigationLink(destination: DocumentDetailView(document: doc)) {
+                            BookCardView(document: doc)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 20)
+                .frame(maxWidth: 1000)
+            }
         }
     }
 
@@ -183,13 +218,25 @@ public struct BookshelfView: View {
     }
 
     private var filteredDocuments: [Document] {
-        guard let facet = selectedFacet else { return documents }
-        if facet.hasPrefix("#") {
-            let tag = String(facet.dropFirst())
-            return documents.filter { $0.tags.contains(tag) }
-        } else {
-            return documents.filter { $0.category == facet }
+        var list = documents
+        if let facet = selectedFacet {
+            if facet.hasPrefix("#") {
+                let tag = String(facet.dropFirst())
+                list = list.filter { $0.tags.contains(tag) }
+            } else {
+                list = list.filter { $0.category == facet }
+            }
         }
+        let q = shelfSearchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if !q.isEmpty {
+            list = list.filter {
+                $0.title.lowercased().contains(q) ||
+                $0.author.lowercased().contains(q) ||
+                $0.category.lowercased().contains(q) ||
+                $0.tags.contains { $0.lowercased().contains(q) }
+            }
+        }
+        return list
     }
 
     private func refreshData() {

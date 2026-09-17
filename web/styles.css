@@ -306,6 +306,37 @@ h4 { font-size: 0.95rem; color: var(--muted); }
 .search-box input { width: 100%; border: 0; outline: 0; background: transparent; font-size: 1rem; color: var(--ink); }
 .search-box button { padding: 9px 18px; border: 0; border-radius: 12px; color: white; background: var(--accent); cursor: pointer; font-weight: 600; }
 
+.shelf-search-box {
+  margin-bottom: 12px;
+}
+
+.shelf-search-box .shelf-clear-btn {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.shelf-search-box .shelf-clear-btn:active,
+.shelf-search-box .shelf-clear-btn:hover {
+  color: var(--accent);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.empty-shelf-notice {
+  grid-column: 1 / -1;
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  background: var(--paper-card);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+}
+
 .search-options { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: 10px 2px 2px; color: var(--muted); font-size: 0.84rem; }
 .search-options select { min-height: 34px; padding: 0 28px 0 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--paper-light); }
 

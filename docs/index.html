@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffffff">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Literae">
+  <meta name="apple-mobile-web-app-title" content="Literae Mobile">
   <title>Literae Mobile · 随身文库</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -27,9 +27,9 @@
   </aside>
   <header class="app-header">
     <div class="brand-lockup">
-      <img class="brand-mark" src="icon-192.png" alt="">
+      <img class="brand-mark" src="icon-192.png" alt="Literae Mobile">
       <div>
-        <h1>Literae</h1>
+        <h1>Literae Mobile</h1>
         <p>随身文库</p>
       </div>
     </div>
@@ -75,6 +75,12 @@
 
       <!-- 书架浏览面板 -->
       <section class="view-panel shelf-panel" id="shelfPanel" role="tabpanel" aria-labelledby="shelfTabBtn">
+        <form class="search-box shelf-search-box" id="shelfSearchForm" role="search" onsubmit="return false;">
+          <span aria-hidden="true">⌕</span>
+          <input id="shelfSearchInput" type="search" autocomplete="off" enterkeyhint="search" placeholder="在书架中搜索书名或责任者">
+          <button id="shelfSearchClearBtn" type="button" class="shelf-clear-btn" hidden aria-label="清除搜索">✕</button>
+        </form>
+
         <div class="panel-summary" id="shelfSummary">正在载入书架...</div>
         <div class="shelf-grid" id="shelfList"></div>
       </section>
@@ -157,7 +163,7 @@
           <li>用 Safari 打开 Literae Mobile 页面。</li>
           <li>轻点工具栏中的“分享”按钮；如果只看到“更多”，先点“更多”，再点“共享”。</li>
           <li>在操作列表向下滑，选择“添加到主屏幕”。若没有该项，滑到底部点“编辑操作”，把它加入列表。</li>
-          <li>确认开启“作为网页 App 打开”，轻点右上角“添加”。以后从主屏幕上的黑色 L 图标进入。</li>
+          <li>确认开启“作为网页 App 打开”，轻点右上角“添加”。以后从主屏幕上的 Literae Mobile 图标进入。</li>
         </ol>
       </details>
       <details class="guide-section">
@@ -166,7 +172,7 @@
           <li>用 Chrome 打开 Literae Mobile 页面。</li>
           <li>轻点地址栏右侧的“分享”按钮。</li>
           <li>选择“添加到主屏幕”，确认名称后轻点“添加”。</li>
-          <li>回到主屏幕，轻点黑色 L 图标进入。</li>
+          <li>回到主屏幕，轻点 Literae Mobile 图标进入。</li>
         </ol>
       </details>
       <details class="guide-section">
@@ -175,7 +181,7 @@
           <li>用 Chrome 打开 Literae Mobile 页面。</li>
           <li>轻点地址栏右侧的“⋮”菜单。</li>
           <li>选择“添加到主屏幕”，再点“安装”；部分版本会直接显示“安装应用”。</li>
-          <li>按屏幕提示确认，安装后从桌面上的黑色 L 图标进入。</li>
+          <li>按屏幕提示确认，安装后从桌面上的 Literae Mobile 图标进入。</li>
         </ol>
       </details>
       <section class="guide-section import-guide">
