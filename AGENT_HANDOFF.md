@@ -23,12 +23,12 @@
 
 ## 2. 工程现状与最新交付资产
 
-### 2.1 桌面端导出系统 (Literae Desktop, `/Users/dongdong/Desktop/Literae`)
+### 2.1 桌面端导出系统 (Literae Desktop, `~/Desktop/Literae`)
 - **后台导出内核**：`services/mobile_export/manager.py`，1000 行分批读取、外置存储意外拔出容错、SHA-256 校验，保留最近 3 个导出包。
 - **前端操作页**：`templates/settings.html` 与 `routes/settings.py`，新增“移动端”标签页，支持实时进度轮询、后台异步打包与一键下载。
 - **测试状态**：`python3 tests/run_isolated.py` 全部 309 项回归测试持续 100% 通过。
 
-### 2.2 移动端工程 (Literae Mobile, `/Users/dongdong/Desktop/Literae-Mobile`)
+### 2.2 移动端工程 (Literae Mobile, `~/Desktop/Literae-Mobile`)
 - **远程代码仓库**：`https://github.com/dong956/Literae-Mobile.git` (主分支: `main`)。
 - **静态部署架构 (`docs/`)**：
   - 代码镜像放置于 `/docs` 目录，直接契合 GitHub Pages 原生“Deploy from a branch (`main /docs`)”机制，避免了个人 Token 缺少 `workflow` 权限无法推送 Actions 的阻碍。

@@ -10,13 +10,13 @@ public struct MainView: View {
     public var body: some View {
         NavigationSplitView {
             BookshelfView()
-                .navigationTitle("Literae 随身文库")
+                .navigationTitle("Literae")
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         Button(action: { isShowingFilePicker = true }) {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title3)
-                                .foregroundColor(Color(red: 0.65, green: 0.23, blue: 0.17))
+                                .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
                         }
                     }
                 }
@@ -27,13 +27,13 @@ public struct MainView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "books.vertical.fill")
                         .font(.system(size: 64))
-                        .foregroundColor(Color(red: 0.65, green: 0.23, blue: 0.17).opacity(0.3))
+                        .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96).opacity(0.28))
                     Text("从左侧书架选择文献开始通读")
                         .font(.headline)
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(red: 0.95, green: 0.92, blue: 0.85).opacity(0.2))
+                .background(Color(red: 0.96, green: 0.97, blue: 0.99))
             }
         }
         .fileImporter(
@@ -59,7 +59,7 @@ public struct MainView: View {
                     VStack(spacing: 16) {
                         ProgressView(value: importer.progress)
                             .progressViewStyle(.linear)
-                            .tint(Color(red: 0.65, green: 0.23, blue: 0.17))
+                            .tint(Color(red: 0.19, green: 0.36, blue: 0.96))
                             .frame(width: 220)
 
                         Text(importer.statusMessage)

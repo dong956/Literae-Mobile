@@ -60,7 +60,7 @@ public struct ReaderView: View {
                             .foregroundColor(currentTheme.textColor)
                         Text(document.metaDisplay + " · 第 \(currentPage) 页")
                             .font(.caption)
-                            .foregroundColor(Color(red: 0.65, green: 0.23, blue: 0.17))
+                            .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
                     }
                     Spacer()
 
@@ -86,8 +86,8 @@ public struct ReaderView: View {
                             .font(.subheadline)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(Color(red: 0.65, green: 0.23, blue: 0.17).opacity(0.12))
-                            .foregroundColor(Color(red: 0.65, green: 0.23, blue: 0.17))
+                            .background(Color(red: 0.19, green: 0.36, blue: 0.96).opacity(0.12))
+                            .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
                             .cornerRadius(8)
                     }
                 }

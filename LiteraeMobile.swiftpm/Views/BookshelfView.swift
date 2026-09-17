@@ -1,8 +1,16 @@
 import SwiftUI
 
 public enum LibraryMode: String, CaseIterable, Identifiable {
-    case shelf = "书架目次"
-    case search = "全文检索"
+    case shelf = "书架"
+    case search = "全库检索"
+
+    public var id: String { rawValue }
+}
+
+public enum SearchSort: String, CaseIterable, Identifiable {
+    case relevance = "匹配度"
+    case title = "书名"
+    case page = "页码"
 
     public var id: String { rawValue }
 }
@@ -13,6 +21,7 @@ public struct BookshelfView: View {
     @State private var selectedFacet: String? = nil
     @State private var searchQuery: String = ""
     @State private var searchResults: [(document: Document, page: Int, text: String)] = []
+    @State private var searchSort: SearchSort = .relevance
 
     private let db = DatabaseManager.shared
 
@@ -61,7 +70,7 @@ public struct BookshelfView: View {
                 searchContent
             }
         }
-        .background(Color(red: 0.95, green: 0.92, blue: 0.85).opacity(0.4))
+        .background(Color(red: 0.96, green: 0.97, blue: 0.99))
         .onAppear {
             refreshData()
         }
@@ -88,7 +97,7 @@ public struct BookshelfView: View {
         VStack(spacing: 0) {
             HStack {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(Color(red: 0.65, green: 0.23, blue: 0.17))
+                    .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
                 TextField("检索人名、地名、事件或文献原句", text: $searchQuery)
                     .textFieldStyle(.plain)
                     .onSubmit {
@@ -103,7 +112,7 @@ public struct BookshelfView: View {
                 Button("检索", action: performSearch)
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundColor(Color(red: 0.65, green: 0.23, blue: 0.17))
+                    .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
             }
             .padding(10)
             .background(Color.white)
@@ -111,11 +120,27 @@ public struct BookshelfView: View {
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.12), lineWidth: 1))
             .padding()
 
+            HStack {
+                Text(searchResults.isEmpty ? "输入关键词开始检索" : "共 \(searchResults.count) 条结果")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Picker("结果排序", selection: $searchSort) {
+                    ForEach(SearchSort.allCases) { option in
+                        Text(option.rawValue).tag(option)
+                    }
+                }
+                .pickerStyle(.menu)
+                .onChange(of: searchSort) { _ in sortResults() }
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 8)
+
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(searchResults, id: \.text) { result in
-                        NavigationLink(destination: ReaderView(document: result.document, initialPage: result.page, terms: [searchQuery])) {
-                            SearchResultCard(result: result, query: searchQuery)
+                    ForEach(Array(searchResults.enumerated()), id: \.offset) { item in
+                        NavigationLink(destination: ReaderView(document: item.element.document, initialPage: item.element.page, terms: [searchQuery])) {
+                            SearchResultCard(result: item.element, query: searchQuery)
                         }
                         .buttonStyle(.plain)
                     }
@@ -134,7 +159,7 @@ public struct BookshelfView: View {
                 .fontWeight(isSelected ? .bold : .regular)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(isSelected ? Color(red: 0.65, green: 0.23, blue: 0.17) : Color.white.opacity(0.8))
+                .background(isSelected ? Color(red: 0.19, green: 0.36, blue: 0.96) : Color.white.opacity(0.8))
                 .foregroundColor(isSelected ? .white : .primary)
                 .cornerRadius(16)
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
@@ -169,7 +194,35 @@ public struct BookshelfView: View {
             searchResults = []
             return
         }
-        searchResults = db.searchPages(query: searchQuery, limit: 60)
+        searchResults = db.searchPages(query: searchQuery, limit: 200)
+        sortResults()
+    }
+
+    private func sortResults() {
+        switch searchSort {
+        case .relevance:
+            let terms = searchQuery.split(whereSeparator: { $0.isWhitespace }).map { String($0).lowercased() }
+            searchResults.sort { relevanceScore($0, terms: terms) > relevanceScore($1, terms: terms) }
+        case .title:
+            searchResults.sort {
+                let order = $0.document.title.localizedStandardCompare($1.document.title)
+                return order == .orderedSame ? $0.page < $1.page : order == .orderedAscending
+            }
+        case .page:
+            searchResults.sort {
+                $0.page == $1.page
+                    ? $0.document.title.localizedStandardCompare($1.document.title) == .orderedAscending
+                    : $0.page < $1.page
+            }
+        }
+    }
+
+    private func relevanceScore(_ result: (document: Document, page: Int, text: String), terms: [String]) -> Int {
+        let text = result.text.lowercased()
+        let title = result.document.title.lowercased()
+        return terms.reduce(0) { score, term in
+            score + text.components(separatedBy: term).count - 1 + (title.contains(term) ? 5 : 0)
+        }
     }
 }
 
@@ -181,7 +234,7 @@ struct BookCardView: View {
         HStack(spacing: 12) {
             // 书脊色带
             RoundedRectangle(cornerRadius: 2)
-                .fill(Color(red: 0.65, green: 0.23, blue: 0.17))
+                .fill(Color(red: 0.19, green: 0.36, blue: 0.96))
                 .frame(width: 4)
 
             VStack(alignment: .leading, spacing: 6) {
@@ -201,8 +254,8 @@ struct BookCardView: View {
                             .font(.caption2)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Color(red: 0.65, green: 0.23, blue: 0.17).opacity(0.1))
-                            .foregroundColor(Color(red: 0.65, green: 0.23, blue: 0.17))
+                            .background(Color(red: 0.19, green: 0.36, blue: 0.96).opacity(0.1))
+                            .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
                             .cornerRadius(4)
                     }
                     Spacer()
@@ -235,7 +288,7 @@ struct SearchResultCard: View {
                 Spacer()
                 Text("第 \(result.page) 页")
                     .font(.caption)
-                    .foregroundColor(Color(red: 0.65, green: 0.23, blue: 0.17))
+                    .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
                     .fontWeight(.semibold)
             }
 

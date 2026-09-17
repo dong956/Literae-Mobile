@@ -34,6 +34,7 @@ const searchInput = document.getElementById('searchInput');
 const searchSummary = document.getElementById('searchSummary');
 const resultList = document.getElementById('resultList');
 const loadMoreButton = document.getElementById('loadMoreButton');
+const searchSort = document.getElementById('searchSort');
 
 // 书籍详情抽屉
 const docDrawer = document.getElementById('docDrawer');
@@ -43,6 +44,18 @@ const drawerSubtitle = document.getElementById('drawerSubtitle');
 const drawerMetaDetails = document.getElementById('drawerMetaDetails');
 const startReadingBtn = document.getElementById('startReadingBtn');
 const drawerPageList = document.getElementById('drawerPageList');
+const documentSearchForm = document.getElementById('documentSearchForm');
+const documentSearchInput = document.getElementById('documentSearchInput');
+const documentSearchSummary = document.getElementById('documentSearchSummary');
+const documentResultList = document.getElementById('documentResultList');
+
+// 使用说明
+const guideDialog = document.getElementById('guideDialog');
+const openGuideButton = document.getElementById('openGuideButton');
+const openGuideFromBanner = document.getElementById('openGuideFromBanner');
+const closeGuideButton = document.getElementById('closeGuideButton');
+const recommendedGuideTitle = document.getElementById('recommendedGuideTitle');
+const recommendedGuideSteps = document.getElementById('recommendedGuideSteps');
 
 // 沉浸式阅读器
 const readerDialog = document.getElementById('readerDialog');
@@ -68,9 +81,11 @@ let currentView = 'shelf'; // 'shelf' | 'search'
 let lastQuery = '';
 let resultLimit = INITIAL_RESULT_LIMIT;
 let searchGeneration = 0;
+let cachedSearch = null;
 
 // 阅读器状态
 let currentDoc = null;
+let drawerDocument = null;
 let currentPage = 1;
 let currentDocPages = [];
 let currentTerms = [];
@@ -418,6 +433,7 @@ async function loadActiveLibrary() {
 }
 
 async function showLibrary() {
+  cachedSearch = null;
   importCard.hidden = true;
   libraryShell.hidden = false;
   const date = activeManifest?.created_at ? new Date(activeManifest.created_at) : null;
@@ -583,6 +599,7 @@ async function getDocumentPages(docId) {
 }
 
 async function openDocDrawer(doc) {
+  drawerDocument = doc;
   drawerTitle.textContent = doc.title || '未命名文献';
   drawerSubtitle.textContent = [doc.author, doc.year, doc.publisher].filter(Boolean).join(' · ');
 
@@ -603,6 +620,9 @@ async function openDocDrawer(doc) {
   }
 
   drawerPageList.replaceChildren();
+  documentSearchInput.value = '';
+  documentSearchSummary.textContent = '';
+  documentResultList.replaceChildren();
   const pages = await getDocumentPages(doc.id);
 
   startReadingBtn.onclick = () => {
@@ -641,6 +661,18 @@ function queryTerms(query) {
   return Array.from(new Set(query.normalize('NFKC').toLocaleLowerCase().split(/\s+/u).filter(Boolean)));
 }
 
+function countOccurrences(text, term) {
+  let count = 0;
+  let cursor = 0;
+  while (cursor < text.length) {
+    const index = text.indexOf(term, cursor);
+    if (index < 0) break;
+    count += 1;
+    cursor = index + Math.max(term.length, 1);
+  }
+  return count;
+}
+
 function makeSnippet(text, terms, radius = 64) {
   const normalized = text.toLocaleLowerCase();
   let first = -1;
@@ -657,6 +689,7 @@ function makeSnippet(text, terms, radius = 64) {
 function highlightedFragment(text, terms) {
   const fragment = document.createDocumentFragment();
   if (!terms.length) {
+    cachedSearch = null;
     fragment.append(document.createTextNode(text));
     return fragment;
   }
@@ -692,9 +725,10 @@ async function getDocuments(ids) {
   return new Map(pairs);
 }
 
-async function scanPages(terms, limit, generation) {
+async function scanPages(terms, generation) {
   return new Promise((resolve, reject) => {
     const matches = [];
+    const allowedDocumentIds = new Set(allDocuments.filter(filterDocument).map(doc => doc.id));
     const transaction = activeDatabase.transaction('pages', 'readonly');
     const request = transaction.objectStore('pages').openCursor();
     request.onerror = () => reject(request.error || new Error('检索本地正文失败'));
@@ -704,13 +738,16 @@ async function scanPages(terms, limit, generation) {
         return;
       }
       const cursor = request.result;
-      if (!cursor || matches.length >= limit) {
+      if (!cursor) {
         resolve(matches);
         return;
       }
       const page = cursor.value;
       const normalized = page.text.normalize('NFKC').toLocaleLowerCase();
-      if (terms.every(term => normalized.includes(term))) matches.push(page);
+      if (allowedDocumentIds.has(page.document_id) && terms.every(term => normalized.includes(term))) {
+        const score = terms.reduce((total, term) => total + countOccurrences(normalized, term), 0);
+        matches.push({...page, _score: score});
+      }
       cursor.continue();
     };
   });
@@ -724,11 +761,27 @@ function documentMeta(documentRecord, page) {
   return parts.join(' · ');
 }
 
+function sortedResults(pages, documents, terms) {
+  const sortMode = searchSort.value;
+  return [...pages].sort((left, right) => {
+    const leftDoc = documents.get(left.document_id) || {title: ''};
+    const rightDoc = documents.get(right.document_id) || {title: ''};
+    const titleCompare = (leftDoc.title || '').localeCompare(rightDoc.title || '', 'zh-CN');
+    if (sortMode === 'document') return titleCompare || left.page - right.page;
+    if (sortMode === 'page') return left.page - right.page || titleCompare;
+    const leftTitle = (leftDoc.title || '').normalize('NFKC').toLocaleLowerCase();
+    const rightTitle = (rightDoc.title || '').normalize('NFKC').toLocaleLowerCase();
+    const leftScore = (left._score || 0) + terms.reduce((score, term) => score + countOccurrences(leftTitle, term) * 5, 0);
+    const rightScore = (right._score || 0) + terms.reduce((score, term) => score + countOccurrences(rightTitle, term) * 5, 0);
+    return rightScore - leftScore || titleCompare || left.page - right.page;
+  });
+}
+
 function renderResults(pages, documents, terms, limit) {
   resultList.replaceChildren();
-  for (const page of pages) {
+  const orderedPages = sortedResults(pages, documents, terms);
+  for (const page of orderedPages.slice(0, limit)) {
     const documentRecord = documents.get(page.document_id) || {title: '未命名文档'};
-    if (!filterDocument(documentRecord)) continue;
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'result-card';
@@ -743,7 +796,7 @@ function renderResults(pages, documents, terms, limit) {
     card.addEventListener('click', () => openReader(documentRecord, page.page, terms));
     resultList.append(card);
   }
-  loadMoreButton.hidden = pages.length < limit;
+  loadMoreButton.hidden = pages.length <= limit;
 }
 
 async function runSearch() {
@@ -762,15 +815,68 @@ async function runSearch() {
   resultList.replaceChildren();
   loadMoreButton.hidden = true;
   try {
-    const pages = await scanPages(terms, resultLimit, generation);
+    const pages = await scanPages(terms, generation);
     if (generation !== searchGeneration) return;
     const documents = await getDocuments(Array.from(new Set(pages.map(page => page.document_id))));
+    cachedSearch = {query, pages, documents, terms};
     renderResults(pages, documents, terms, resultLimit);
     searchSummary.textContent = pages.length
-      ? `已检索到 ${pages.length.toLocaleString()} 条相关页面${pages.length >= resultLimit ? '，可继续加载' : ''}`
+      ? `共找到 ${pages.length.toLocaleString()} 条相关页面，当前显示 ${Math.min(pages.length, resultLimit).toLocaleString()} 条`
       : '未找到匹配所有关键词的页面';
   } catch (error) {
     searchSummary.textContent = `检索失败：${error.message}`;
+  }
+}
+
+async function searchCurrentDocument() {
+  if (!activeDatabase || !drawerDocument) return;
+  const terms = queryTerms(documentSearchInput.value.trim());
+  documentResultList.replaceChildren();
+  if (!terms.length) {
+    documentSearchSummary.textContent = '输入关键词检索本书正文';
+    return;
+  }
+  documentSearchSummary.textContent = '正在本书中检索…';
+  try {
+    const transaction = activeDatabase.transaction('pages', 'readonly');
+    const index = transaction.objectStore('pages').index('by_document');
+    const results = await new Promise((resolve, reject) => {
+      const matches = [];
+      const request = index.openCursor(IDBKeyRange.only(drawerDocument.id));
+      request.onerror = () => reject(request.error || new Error('书内检索失败'));
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve(matches);
+          return;
+        }
+        const record = cursor.value;
+        const normalized = record.text.normalize('NFKC').toLocaleLowerCase();
+        if (terms.every(term => normalized.includes(term))) matches.push(record);
+        cursor.continue();
+      };
+    });
+
+    documentSearchSummary.textContent = results.length
+      ? `本书共找到 ${results.length.toLocaleString()} 个相关页面`
+      : '本书中未找到匹配所有关键词的页面';
+    for (const result of results.slice(0, 80)) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'document-result';
+      const page = document.createElement('strong');
+      page.textContent = `第 ${result.page} 页`;
+      const snippet = document.createElement('span');
+      snippet.append(highlightedFragment(makeSnippet(result.text, terms, 48), terms));
+      button.append(page, snippet);
+      button.addEventListener('click', () => {
+        docDrawer.close();
+        openReader(drawerDocument, result.page, terms);
+      });
+      documentResultList.append(button);
+    }
+  } catch (error) {
+    documentSearchSummary.textContent = `检索失败：${error.message}`;
   }
 }
 
@@ -876,10 +982,28 @@ searchForm.addEventListener('submit', event => {
   runSearch();
 });
 
+searchSort.addEventListener('change', () => {
+  if (cachedSearch?.query === searchInput.value.trim()) {
+    renderResults(cachedSearch.pages, cachedSearch.documents, cachedSearch.terms, resultLimit);
+  } else if (searchInput.value.trim()) {
+    runSearch();
+  }
+});
+
+documentSearchForm.addEventListener('submit', event => {
+  event.preventDefault();
+  searchCurrentDocument();
+});
+
 loadMoreButton.addEventListener('click', () => {
   resultLimit += INITIAL_RESULT_LIMIT;
   searchInput.value = lastQuery;
-  runSearch();
+  if (cachedSearch?.query === lastQuery) {
+    renderResults(cachedSearch.pages, cachedSearch.documents, cachedSearch.terms, resultLimit);
+    searchSummary.textContent = `共找到 ${cachedSearch.pages.length.toLocaleString()} 条相关页面，当前显示 ${Math.min(cachedSearch.pages.length, resultLimit).toLocaleString()} 条`;
+  } else {
+    runSearch();
+  }
 });
 
 closeDrawerButton.addEventListener('click', () => docDrawer.close());
@@ -925,12 +1049,63 @@ applyFontSize();
 applyTheme();
 loadActiveLibrary();
 
+function browserGuide() {
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isChrome = /CriOS|Chrome/.test(ua) && !/EdgiOS|EdgA|OPR/.test(ua);
+  if (isIOS && isChrome) {
+    return {
+      title: 'iPhone / iPad · Chrome',
+      steps: ['点地址栏右侧的“分享”按钮。', '选择“添加到主屏幕”。', '确认名称后点“添加”，以后从黑色 L 图标进入。'],
+      prompt: '点地址栏右侧“分享” → “添加到主屏幕”。'
+    };
+  }
+  if (isIOS) {
+    return {
+      title: 'iPhone / iPad · Safari',
+      steps: ['点 Safari 工具栏的“分享”按钮。', '向下滑并选择“添加到主屏幕”。', '开启“作为网页 App 打开”，再点“添加”。'],
+      prompt: '点“分享” → “添加到主屏幕”，并开启“作为网页 App 打开”。'
+    };
+  }
+  if (/Android/.test(ua) && isChrome) {
+    return {
+      title: 'Android · Chrome',
+      steps: ['点地址栏右侧的“⋮”菜单。', '选择“添加到主屏幕”或“安装应用”。', '点“安装”，以后从桌面上的黑色 L 图标进入。'],
+      prompt: '点右上角“⋮” → “添加到主屏幕” → “安装”。'
+    };
+  }
+  return {
+    title: '当前浏览器',
+    steps: ['打开浏览器的分享或更多菜单。', '选择“添加到主屏幕”或“安装应用”。', '如果没有该选项，请改用 Safari（iPhone/iPad）或 Chrome（Android）。'],
+    prompt: '从浏览器菜单选择“添加到主屏幕”或“安装应用”。'
+  };
+}
+
+function openGuide() {
+  if (!guideDialog.open) guideDialog.showModal();
+}
+
+openGuideButton.addEventListener('click', openGuide);
+openGuideFromBanner.addEventListener('click', openGuide);
+closeGuideButton.addEventListener('click', () => guideDialog.close());
+guideDialog.addEventListener('click', event => {
+  if (event.target === guideDialog) guideDialog.close();
+});
+
 function initInstallPrompt() {
   const banner = document.getElementById("installPromptBanner");
   const dismissBtn = document.getElementById("dismissInstallPrompt");
   if (!banner) return;
   const isStandalone = window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
   const isDismissed = sessionStorage.getItem("dismiss_install_prompt") === "true";
+  const guide = browserGuide();
+  document.getElementById('installPromptText').textContent = guide.prompt;
+  recommendedGuideTitle.textContent = guide.title;
+  recommendedGuideSteps.replaceChildren(...guide.steps.map(step => {
+    const item = document.createElement('li');
+    item.textContent = step;
+    return item;
+  }));
   if (!isStandalone && !isDismissed) {
     banner.hidden = false;
   }
@@ -941,3 +1116,5 @@ function initInstallPrompt() {
     });
   }
 }
+
+initInstallPrompt();

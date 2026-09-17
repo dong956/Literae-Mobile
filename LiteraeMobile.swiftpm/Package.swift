@@ -18,10 +18,10 @@ let package = Package(
             targets: ["AppModule"],
             bundleIdentifier: "org.literae.mobile",
             teamIdentifier: "",
-            displayVersion: "1.0",
-            bundleVersion: "1",
-            appIcon: .placeholder(icon: .book),
-            accentColor: .presetColor(.brown),
+            displayVersion: "1.1.0",
+            bundleVersion: "2",
+            appIcon: .asset("AppIcon"),
+            accentColor: .presetColor(.blue),
             supportedDeviceFamilies: [
                 .pad,
                 .phone

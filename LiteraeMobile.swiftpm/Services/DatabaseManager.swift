@@ -181,7 +181,7 @@ public final class DatabaseManager: @unchecked Sendable {
         return text
     }
 
-    public func searchPages(query: String, limit: Int = 60) -> [(document: Document, page: Int, text: String)] {
+    public func searchPages(query: String, documentId: String? = nil, limit: Int = 60) -> [(document: Document, page: Int, text: String)] {
         let terms = query.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
         guard !terms.isEmpty else { return [] }
 
@@ -190,6 +190,9 @@ public final class DatabaseManager: @unchecked Sendable {
             var whereClauses: [String] = []
             for _ in terms {
                 whereClauses.append("p.text LIKE ?")
+            }
+            if documentId != nil {
+                whereClauses.append("p.document_id = ?")
             }
             let whereSql = whereClauses.joined(separator: " AND ")
             let sql = """
@@ -202,11 +205,17 @@ public final class DatabaseManager: @unchecked Sendable {
 
             var stmt: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
-                for (index, term) in terms.enumerated() {
+                var bindingIndex: Int32 = 1
+                for term in terms {
                     let pattern = "%\(term)%"
-                    sqlite3_bind_text(stmt, Int32(index + 1), (pattern as NSString).utf8String, -1, nil)
+                    sqlite3_bind_text(stmt, bindingIndex, (pattern as NSString).utf8String, -1, nil)
+                    bindingIndex += 1
                 }
-                sqlite3_bind_int(stmt, Int32(terms.count + 1), Int32(limit))
+                if let documentId = documentId {
+                    sqlite3_bind_text(stmt, bindingIndex, (documentId as NSString).utf8String, -1, nil)
+                    bindingIndex += 1
+                }
+                sqlite3_bind_int(stmt, bindingIndex, Int32(limit))
 
                 while sqlite3_step(stmt) == SQLITE_ROW {
                     let docId = String(cString: sqlite3_column_text(stmt, 0))

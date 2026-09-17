@@ -4,6 +4,8 @@ public struct DocumentDetailView: View {
     public let document: Document
     @State private var pages: [Int] = []
     @State private var selectedPageForReader: Int? = nil
+    @State private var searchQuery: String = ""
+    @State private var searchResults: [(document: Document, page: Int, text: String)] = []
 
     private let db = DatabaseManager.shared
 
@@ -42,7 +44,7 @@ public struct DocumentDetailView: View {
                     }
                 }
                 .padding()
-                .background(Color(red: 0.96, green: 0.94, blue: 0.90))
+                .background(Color(red: 0.96, green: 0.97, blue: 0.99))
                 .cornerRadius(16)
 
                 // 通读主按钮
@@ -56,9 +58,42 @@ public struct DocumentDetailView: View {
                             Spacer()
                         }
                         .padding()
-                        .background(Color(red: 0.65, green: 0.23, blue: 0.17))
+                        .background(Color(red: 0.19, green: 0.36, blue: 0.96))
                         .foregroundColor(.white)
                         .cornerRadius(14)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("在本书内检索")
+                        .font(.headline)
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
+                        TextField("输入本书中的关键词", text: $searchQuery)
+                            .textFieldStyle(.plain)
+                            .onSubmit { performDocumentSearch() }
+                        Button("检索", action: performDocumentSearch)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
+                    }
+                    .padding(11)
+                    .background(Color.white)
+                    .cornerRadius(12)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.12), lineWidth: 1))
+
+                    if !searchQuery.isEmpty {
+                        Text(searchResults.isEmpty ? "本书中没有找到匹配页面" : "本书共找到 \(searchResults.count) 个相关页面")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    ForEach(searchResults, id: \.page) { result in
+                        NavigationLink(destination: ReaderView(document: document, initialPage: result.page, terms: [searchQuery])) {
+                            SearchResultCard(result: result, query: searchQuery)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -68,13 +103,13 @@ public struct DocumentDetailView: View {
                         .font(.headline)
 
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 75), spacing: 10)], spacing: 10) {
-                        for page in pages {
+                        ForEach(pages, id: \.self) { page in
                             NavigationLink(destination: ReaderView(document: document, initialPage: page)) {
                                 Text("第 \(page) 页")
                                     .font(.subheadline)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 8)
-                                    .background(Color(red: 0.96, green: 0.94, blue: 0.90))
+                                    .background(Color(red: 0.96, green: 0.97, blue: 0.99))
                                     .foregroundColor(.primary)
                                     .cornerRadius(8)
                                     .overlay(
@@ -106,6 +141,15 @@ public struct DocumentDetailView: View {
                 .font(.subheadline)
         }
     }
+
+    private func performDocumentSearch() {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            searchResults = []
+            return
+        }
+        searchResults = db.searchPages(query: query, documentId: document.id, limit: 80)
+    }
 }
 
 private struct WrappingHStack: View {
@@ -118,8 +162,8 @@ private struct WrappingHStack: View {
                     .font(.caption2)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color(red: 0.65, green: 0.23, blue: 0.17).opacity(0.12))
-                    .foregroundColor(Color(red: 0.65, green: 0.23, blue: 0.17))
+                    .background(Color(red: 0.19, green: 0.36, blue: 0.96).opacity(0.12))
+                    .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
                     .cornerRadius(4)
             }
         }

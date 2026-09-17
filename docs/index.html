@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f3ead8">
+  <meta name="theme-color" content="#ffffff">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Literae">
@@ -14,31 +14,36 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="paper-grain" aria-hidden="true"></div>
-    <aside class="install-prompt-banner" id="installPromptBanner" hidden>
+  <aside class="install-prompt-banner" id="installPromptBanner" hidden>
     <div class="install-prompt-content">
-      <span>📲</span>
+      <img src="favicon.png" alt="" width="34" height="34">
       <div>
-        <strong>添加到主屏幕</strong>
-        <p>点击浏览器底部的【分享 ⎋】➔【添加到主屏幕】，即可像独立 App 一样全屏离线研读。</p>
+        <strong id="installPromptTitle">安装 Literae Mobile</strong>
+        <p id="installPromptText">添加到主屏幕后，可像 App 一样打开并离线使用。</p>
       </div>
     </div>
+    <button class="install-guide-btn" id="openGuideFromBanner" type="button">查看步骤</button>
     <button class="install-dismiss-btn" id="dismissInstallPrompt" type="button" aria-label="关闭提示">✕</button>
   </aside>
   <header class="app-header">
-    <div>
-      <p class="eyebrow">LITERAE · MOBILE</p>
-      <h1>随身文库</h1>
+    <div class="brand-lockup">
+      <img class="brand-mark" src="icon-192.png" alt="">
+      <div>
+        <h1>Literae</h1>
+        <p>随身文库</p>
+      </div>
     </div>
-    <button class="icon-button" id="openLibraryButton" type="button" title="导入文库" aria-label="导入文库">＋</button>
+    <div class="header-actions">
+      <button class="header-button" id="openGuideButton" type="button">使用说明</button>
+      <button class="icon-button" id="openLibraryButton" type="button" title="导入文库" aria-label="导入文库">＋</button>
+    </div>
   </header>
 
   <main>
     <!-- 初始导入界面 -->
     <section class="import-card" id="importCard">
-      <p class="section-kicker">离线资料</p>
       <h2>把桌面文库带到手机</h2>
-      <p>导入 Literae 桌面版导出的 ZIP 数据包。正文只保存在当前设备，不消耗网络流量，完全离线可用。</p>
+      <p>从 Literae 桌面版导出 ZIP 数据包，再在这里导入。题名与识别文本只保存在当前设备。</p>
       <label class="primary-action" for="packageInput">选择数据包</label>
       <input id="packageInput" type="file" accept=".zip,application/zip" hidden>
       <div class="status-line" id="importStatus" role="status" aria-live="polite"></div>
@@ -57,10 +62,10 @@
         <button class="text-button" id="replaceLibraryButton" type="button">更新资料</button>
       </div>
 
-      <!-- 视图切换选项卡：书架浏览 / 全文检索 -->
+      <!-- 视图切换选项卡：书架 / 全库检索 -->
       <nav class="view-tabs" role="tablist" aria-label="模式切换">
-        <button class="view-tab active" id="shelfTabBtn" type="button" role="tab" aria-selected="true" aria-controls="shelfPanel">书架目次</button>
-        <button class="view-tab" id="searchTabBtn" type="button" role="tab" aria-selected="false" aria-controls="searchPanel">全文检索</button>
+        <button class="view-tab active" id="shelfTabBtn" type="button" role="tab" aria-selected="true" aria-controls="shelfPanel">书架</button>
+        <button class="view-tab" id="searchTabBtn" type="button" role="tab" aria-selected="false" aria-controls="searchPanel">全库检索</button>
       </nav>
 
       <!-- 分类与标签筛选胶囊栏 -->
@@ -74,13 +79,22 @@
         <div class="shelf-grid" id="shelfList"></div>
       </section>
 
-      <!-- 全文检索面板 -->
+      <!-- 全库检索面板 -->
       <section class="view-panel search-panel" id="searchPanel" role="tabpanel" aria-labelledby="searchTabBtn" hidden>
         <form class="search-box" id="searchForm">
           <span aria-hidden="true">⌕</span>
           <input id="searchInput" type="search" autocomplete="off" enterkeyhint="search" placeholder="检索人名、地名、事件或文献原句">
           <button type="submit">检索</button>
         </form>
+
+        <div class="search-options">
+          <label for="searchSort">结果排序</label>
+          <select id="searchSort">
+            <option value="relevance">匹配度优先</option>
+            <option value="document">按书名</option>
+            <option value="page">按页码</option>
+          </select>
+        </div>
 
         <div class="panel-summary" id="searchSummary">输入关键词开始检索</div>
         <div class="result-list" id="resultList"></div>
@@ -103,10 +117,73 @@
       <div class="drawer-action-row">
         <button class="primary-action full-width" id="startReadingBtn" type="button">从第 1 页开始通读</button>
       </div>
+      <section class="document-search-section" aria-labelledby="documentSearchTitle">
+        <h4 id="documentSearchTitle">在本书内检索</h4>
+        <form class="document-search-box" id="documentSearchForm">
+          <input id="documentSearchInput" type="search" autocomplete="off" enterkeyhint="search" placeholder="输入本书中的关键词">
+          <button type="submit">检索</button>
+        </form>
+        <div class="document-search-summary" id="documentSearchSummary"></div>
+        <div class="document-result-list" id="documentResultList"></div>
+      </section>
       <div class="catalog-section">
         <h4>已收录 OCR 页码</h4>
         <div class="page-pill-grid" id="drawerPageList"></div>
       </div>
+    </div>
+  </dialog>
+
+  <!-- 首次使用与安装教程 -->
+  <dialog class="guide-dialog" id="guideDialog">
+    <div class="guide-header">
+      <div>
+        <p>快速上手</p>
+        <h2>安装与导入</h2>
+      </div>
+      <button class="icon-button quiet" id="closeGuideButton" type="button" aria-label="关闭使用说明">✕</button>
+    </div>
+    <div class="guide-content">
+      <section class="guide-section recommended-guide" id="recommendedGuide">
+        <span class="guide-badge">当前设备</span>
+        <h3 id="recommendedGuideTitle">按浏览器完成安装</h3>
+        <ol id="recommendedGuideSteps"></ol>
+      </section>
+      <details class="guide-section" open>
+        <summary>iPhone / iPad · Safari</summary>
+        <ol>
+          <li>用 Safari 打开 Literae Mobile 页面。</li>
+          <li>轻点工具栏中的“分享”按钮；如果只看到“更多”，先点“更多”，再点“共享”。</li>
+          <li>在操作列表向下滑，选择“添加到主屏幕”。若没有该项，滑到底部点“编辑操作”，把它加入列表。</li>
+          <li>确认开启“作为网页 App 打开”，轻点右上角“添加”。以后从主屏幕上的黑色 L 图标进入。</li>
+        </ol>
+      </details>
+      <details class="guide-section">
+        <summary>iPhone / iPad · Chrome</summary>
+        <ol>
+          <li>用 Chrome 打开 Literae Mobile 页面。</li>
+          <li>轻点地址栏右侧的“分享”按钮。</li>
+          <li>选择“添加到主屏幕”，确认名称后轻点“添加”。</li>
+          <li>回到主屏幕，轻点黑色 L 图标进入。</li>
+        </ol>
+      </details>
+      <details class="guide-section">
+        <summary>Android · Chrome</summary>
+        <ol>
+          <li>用 Chrome 打开 Literae Mobile 页面。</li>
+          <li>轻点地址栏右侧的“⋮”菜单。</li>
+          <li>选择“添加到主屏幕”，再点“安装”；部分版本会直接显示“安装应用”。</li>
+          <li>按屏幕提示确认，安装后从桌面上的黑色 L 图标进入。</li>
+        </ol>
+      </details>
+      <section class="guide-section import-guide">
+        <h3>导入桌面文库</h3>
+        <ol>
+          <li>在 Mac 上打开 Literae：设置 → 移动端 → 生成数据包 → 下载 ZIP。</li>
+          <li>将 ZIP 隔空投送到 iPhone/iPad 的“文件”App，或传到 Android 的“下载”目录；不要解压。</li>
+          <li>回到 Literae Mobile，点“选择数据包”，选中 ZIP。导入完成后即可使用书架、书内检索和全库检索。</li>
+        </ol>
+        <p>数据导入后保存在本机。更换浏览器、清除网站数据或卸载网页 App 前，请保留原 ZIP 以便重新导入。</p>
+      </section>
     </div>
   </dialog>
 

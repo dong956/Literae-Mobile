@@ -1,57 +1,71 @@
-# Literae Mobile · 随身文库
+# Literae Mobile
 
-> **Literae 桌面端的轻量级移动端阅读与检索伴侣。**
-> 面向文史研究者与学术读者，将桌面文库中的 OCR 识别文本随时随地随身查阅，兼顾极致隐私与优雅审美。
+Literae Mobile is the lightweight, privacy-first companion to the Literae desktop library. It lets researchers carry OCR text and bibliographic metadata on a phone or tablet for offline reading and search.
 
----
+## Features
 
-## 🌟 核心特性
+- **Offline PWA:** install from Safari or Chrome and use it without an app store.
+- **Private local storage:** imported data stays in IndexedDB in the selected browser; no library text is uploaded to a server.
+- **Bookshelf and filters:** browse titles by category and tag.
+- **Search inside one document:** find a term within the selected book and jump directly to a matching page.
+- **Library-wide search:** search every imported document and sort results by relevance, title, or page number.
+- **Readable themes:** paper, soft white, and dark reading modes with adjustable text size.
+- **Citation copy:** copy a short quotation with title, author, year, and page information.
+- **Native projects included:** SwiftUI source for Xcode and a Swift Playgrounds package for iPad.
 
-- **📱 纯离线零安装（PWA 网页应用）**：通过手机浏览器打开，点击“添加到主屏幕”，即可像独立 App 一样全屏离线运行。
-- **🔒 绝对隐私保证（Zero-Leak Guarantee）**：仅导出 OCR 识别文本与书目元数据，不导出原版 PDF、原图、系统绝对路径或 API 密钥。数据 100% 存放在读者设备本地的 IndexedDB / SQLite 中，完全不消耗任何云端流量，不经过任何服务器。
-- **⚡ 毫秒级全文检索**：支持快速检索人名、地名、事件或文献原句，高亮上下文并直达对应页码。
-- **📜 典雅古籍排版**：具备宣纸、柔白、夜读三种经典阅读主题，支持字号无级缩放与底端顺序翻页。
-- **📑 学术引文一键复制**：阅读器内置规范学术引用生成器，一键复制标准格式文献引文（著者、篇名、出版项与当前页码）。
-- **🍎 原生 iOS / iPadOS 支持**：包含纯原生 SwiftUI 6 工程与 Swift Playgrounds 应用包（`LiteraeMobile.swiftpm`），支持 iPad 双栏目次分屏与 AirDrop 隔空投送自动无缝入库。
+## Open the Web App
 
----
+[Launch Literae Mobile](https://dong956.github.io/Literae-Mobile/)
 
-## 🚀 快速上手
+### Install on iPhone or iPad with Safari
 
-### 1. 网页端 / 手机端即开即用（推荐）
+1. Open Literae Mobile in Safari.
+2. Tap **Share**. If Safari first shows **More**, tap it and then tap **Share**.
+3. Scroll down and choose **Add to Home Screen**. If the option is missing, scroll to the bottom, tap **Edit Actions**, and add it.
+4. Enable **Open as Web App**, then tap **Add**.
+5. Open Literae Mobile from the black **L** icon on the Home Screen.
 
-直接在手机（iPhone / iPad / Android）或电脑浏览器中打开：
+### Install on iPhone or iPad with Chrome
 
-👉 **[https://dong956.github.io/Literae-Mobile/](https://dong956.github.io/Literae-Mobile/)**
+1. Open Literae Mobile in Chrome.
+2. Tap the **Share** button beside the address bar.
+3. Choose **Add to Home Screen**, confirm the name, and tap **Add**.
 
-1. **添加到主屏幕**：
-   - **iPhone / iPad**：在 Safari 底部点击【分享 ⎋】➔【添加到主屏幕】；
-   - **Android / 墨水屏平板**：在 Chrome 或系统浏览器菜单中点击【安装应用】或【添加到桌面】；
-2. **导入文库**：
-   - 从 Literae 桌面版设置页导出 `Literae-Mobile-*.zip`；
-   - 在手机端点击“选择数据包”导入，文献瞬间建立本地索引。
+### Install on Android with Chrome
 
-### 2. iPad Swift Playgrounds 原生运行
+1. Open Literae Mobile in Chrome.
+2. Tap the three-dot menu beside the address bar.
+3. Choose **Add to Home screen** and then **Install**. Some Chrome versions show **Install app** directly.
 
-1. 在 iPad 上安装官方免费的 **Swift Playgrounds**；
-2. 将本仓库中的 `LiteraeMobile.swiftpm` 通过 AirDrop（隔空投送）发送至 iPad 打开；
-3. 点击顶部的 **▶ 运行** 按钮，即可启动 iPad 原生双栏阅读器。
+## Import a Library
 
----
+1. In Literae desktop, open **Settings → Mobile**.
+2. Select **Generate Package**, wait for completion, and download `Literae-Mobile-*.zip`.
+3. Transfer the ZIP to the phone or tablet. Do not extract it.
+4. Open Literae Mobile from the Home Screen, select **Choose Package**, and pick the ZIP.
 
-## 📂 仓库目录结构
+Keep the original ZIP. Clearing browser data, changing browsers, or uninstalling the web app can remove the locally imported library.
+
+## Swift Playgrounds on iPad
+
+1. Install Apple's Swift Playgrounds.
+2. AirDrop `LiteraeMobile.swiftpm` to the iPad and open it in Swift Playgrounds.
+3. Tap **Run**.
+
+## Repository Layout
 
 ```text
-├── docs/                    # GitHub Pages 静态托管站点（包含 Web 版离线应用）
-├── web/                     # PWA 源代码与离线 Service Worker
-├── ios/                     # 纯原生 SwiftUI 6 + SQLite3 iOS/iPadOS Xcode 工程
-├── LiteraeMobile.swiftpm/   # iPad Swift Playgrounds 官方工程包
-├── AGENT_HANDOFF.md         # 设计思路与架构交接说明
-└── LICENSE                  # MIT 开源许可证
+docs/                    GitHub Pages deployment copy of the PWA
+web/                     PWA source and service worker
+ios/                     SwiftUI Xcode project
+LiteraeMobile.swiftpm/   Swift Playgrounds application package
+AGENT_HANDOFF.md         Architecture and maintenance handoff
 ```
 
----
+## Privacy Boundary
 
-## 📄 许可证
+The mobile package contains bibliographic metadata and OCR text only. It excludes source PDFs, page images, absolute filesystem paths, API keys, settings, and logs.
 
-本项目采用 [MIT License](LICENSE) 授权开源。
+## License
+
+Literae Mobile is released under the [MIT License](LICENSE).
