@@ -8,11 +8,21 @@ public enum LibraryMode: String, CaseIterable, Identifiable {
 }
 
 public enum SearchSort: String, CaseIterable, Identifiable {
-    case relevance = "匹配度"
-    case title = "书名"
-    case page = "页码"
+    case matchCount = "匹配数（多到少）"
+    case latest = "最近导入"
+    case titleAsc = "题名（正序）"
+    case titleDesc = "题名（倒序）"
+    case yearDesc = "出版时间（新到旧）"
+    case yearAsc = "出版时间（旧到新）"
 
     public var id: String { rawValue }
+}
+
+public struct DocumentSearchGroup: Identifiable {
+    public var id: String { document.id }
+    public let document: Document
+    public var matches: [(page: Int, text: String)]
+    public var isExpanded: Bool = false
 }
 
 public struct BookshelfView: View {
@@ -20,8 +30,8 @@ public struct BookshelfView: View {
     @State private var documents: [Document] = []
     @State private var selectedFacet: String? = nil
     @State private var searchQuery: String = ""
-    @State private var searchResults: [(document: Document, page: Int, text: String)] = []
-    @State private var searchSort: SearchSort = .relevance
+    @State private var searchGroups: [DocumentSearchGroup] = []
+    @State private var searchSort: SearchSort = .matchCount
 
     private let db = DatabaseManager.shared
 
@@ -104,7 +114,7 @@ public struct BookshelfView: View {
                         performSearch()
                     }
                 if !searchQuery.isEmpty {
-                    Button(action: { searchQuery = ""; searchResults = [] }) {
+                    Button(action: { searchQuery = ""; searchGroups = [] }) {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.secondary)
                     }
@@ -121,7 +131,7 @@ public struct BookshelfView: View {
             .padding()
 
             HStack {
-                Text(searchResults.isEmpty ? "输入关键词开始检索" : "共 \(searchResults.count) 条结果")
+                Text(searchGroups.isEmpty ? "输入关键词开始检索" : "共在 \(searchGroups.count) 部文献中找到 \(totalMatchCount) 处匹配")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -138,11 +148,8 @@ public struct BookshelfView: View {
 
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(Array(searchResults.enumerated()), id: \.offset) { item in
-                        NavigationLink(destination: ReaderView(document: item.element.document, initialPage: item.element.page, terms: [searchQuery])) {
-                            SearchResultCard(result: item.element, query: searchQuery)
-                        }
-                        .buttonStyle(.plain)
+                    ForEach($searchGroups) { $group in
+                        DocumentSearchGroupCard(group: $group, query: searchQuery)
                     }
                 }
                 .padding(.horizontal)
@@ -189,40 +196,110 @@ public struct BookshelfView: View {
         documents = db.fetchAllDocuments()
     }
 
+    private var totalMatchCount: Int {
+        searchGroups.reduce(0) { $0 + $1.matches.count }
+    }
+
     private func performSearch() {
         guard !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            searchResults = []
+            searchGroups = []
             return
         }
-        searchResults = db.searchPages(query: searchQuery, limit: 200)
-        sortResults()
+        let rawResults = db.searchPages(query: searchQuery, limit: 300)
+        groupAndSortResults(rawResults: rawResults)
+    }
+
+    private func groupAndSortResults(rawResults: [(document: Document, page: Int, text: String)]) {
+        var groupsDict: [String: DocumentSearchGroup] = [:]
+        var order: [String] = []
+        for result in rawResults {
+            if var existing = groupsDict[result.document.id] {
+                existing.matches.append((page: result.page, text: result.text))
+                groupsDict[result.document.id] = existing
+            } else {
+                groupsDict[result.document.id] = DocumentSearchGroup(
+                    document: result.document,
+                    matches: [(page: result.page, text: result.text)]
+                )
+                order.append(result.document.id)
+            }
+        }
+        var groups = order.compactMap { groupsDict[$0] }
+        for i in 0..<groups.count {
+            groups[i].matches.sort { $0.page < $1.page }
+        }
+        sortGroups(&groups)
+        searchGroups = groups
     }
 
     private func sortResults() {
+        var groups = searchGroups
+        sortGroups(&groups)
+        searchGroups = groups
+    }
+
+    private func sortGroups(_ groups: inout [DocumentSearchGroup]) {
         switch searchSort {
-        case .relevance:
+        case .matchCount:
             let terms = searchQuery.split(whereSeparator: { $0.isWhitespace }).map { String($0).lowercased() }
-            searchResults.sort { relevanceScore($0, terms: terms) > relevanceScore($1, terms: terms) }
-        case .title:
-            searchResults.sort {
-                let order = $0.document.title.localizedStandardCompare($1.document.title)
-                return order == .orderedSame ? $0.page < $1.page : order == .orderedAscending
+            groups.sort { a, b in
+                let aTitle = a.document.title.lowercased()
+                let bTitle = b.document.title.lowercased()
+                let aTitleHits = terms.filter { aTitle.contains($0) }.count
+                let bTitleHits = terms.filter { bTitle.contains($0) }.count
+                let aScore = a.matches.count + aTitleHits * 10
+                let bScore = b.matches.count + bTitleHits * 10
+                if aScore != bScore { return aScore > bScore }
+                if a.matches.count != b.matches.count { return a.matches.count > b.matches.count }
+                return a.document.title.localizedStandardCompare(b.document.title) == .orderedAscending
             }
-        case .page:
-            searchResults.sort {
-                $0.page == $1.page
-                    ? $0.document.title.localizedStandardCompare($1.document.title) == .orderedAscending
-                    : $0.page < $1.page
+        case .latest:
+            let docOrder = Dictionary(uniqueKeysWithValues: documents.enumerated().map { ($0.element.id, $0.offset) })
+            groups.sort {
+                (docOrder[$0.document.id] ?? 999999) < (docOrder[$1.document.id] ?? 999999)
+            }
+        case .titleAsc:
+            groups.sort {
+                $0.document.title.localizedStandardCompare($1.document.title) == .orderedAscending
+            }
+        case .titleDesc:
+            groups.sort {
+                $0.document.title.localizedStandardCompare($1.document.title) == .orderedDescending
+            }
+        case .yearDesc:
+            let (dated, undated) = partitionByYear(groups)
+            groups = dated.sorted {
+                extractYear($0.document.year) > extractYear($1.document.year)
+            } + undated.sorted {
+                $0.document.title.localizedStandardCompare($1.document.title) == .orderedAscending
+            }
+        case .yearAsc:
+            let (dated, undated) = partitionByYear(groups)
+            groups = dated.sorted {
+                extractYear($0.document.year) < extractYear($1.document.year)
+            } + undated.sorted {
+                $0.document.title.localizedStandardCompare($1.document.title) == .orderedAscending
             }
         }
     }
 
-    private func relevanceScore(_ result: (document: Document, page: Int, text: String), terms: [String]) -> Int {
-        let text = result.text.lowercased()
-        let title = result.document.title.lowercased()
-        return terms.reduce(0) { score, term in
-            score + text.components(separatedBy: term).count - 1 + (title.contains(term) ? 5 : 0)
+    private func extractYear(_ str: String) -> Int {
+        guard let range = str.range(of: #"\d{4}"#, options: .regularExpression),
+              let year = Int(str[range]) else { return 0 }
+        return year
+    }
+
+    private func partitionByYear(_ groups: [DocumentSearchGroup]) -> (dated: [DocumentSearchGroup], undated: [DocumentSearchGroup]) {
+        var dated: [DocumentSearchGroup] = []
+        var undated: [DocumentSearchGroup] = []
+        for g in groups {
+            if extractYear(g.document.year) > 0 {
+                dated.append(g)
+            } else {
+                undated.append(g)
+            }
         }
+        return (dated, undated)
     }
 }
 
@@ -301,6 +378,129 @@ struct SearchResultCard: View {
         .background(Color.white.opacity(0.9))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.04), radius: 3, x: 0, y: 1)
+    }
+
+    private func snippet(from text: String, query: String) -> String {
+        if let range = text.range(of: query, options: .caseInsensitive) {
+            let start = text.index(range.lowerBound, offsetBy: -30, limitedBy: text.startIndex) ?? text.startIndex
+            let end = text.index(range.upperBound, offsetBy: 60, limitedBy: text.endIndex) ?? text.endIndex
+            return (start > text.startIndex ? "…" : "") + text[start..<end] + (end < text.endIndex ? "…" : "")
+        }
+        return String(text.prefix(90)) + "…"
+    }
+}
+
+// 文献检索聚合卡片（多命中折叠展开）
+struct DocumentSearchGroupCard: View {
+    @Binding var group: DocumentSearchGroup
+    let query: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // 头部：分类、标题、作者出版信息、命中数
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        if !group.document.category.isEmpty {
+                            Text(group.document.category)
+                                .font(.system(size: 11, weight: .medium))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.primary.opacity(0.06))
+                                .foregroundColor(.secondary)
+                                .cornerRadius(4)
+                        }
+                        Text(group.document.title)
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                    }
+                    if !group.document.metaDisplay.isEmpty {
+                        Text(group.document.metaDisplay)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                Spacer()
+                Text("共 \(group.matches.count) 处匹配")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color(red: 0.19, green: 0.36, blue: 0.96).opacity(0.1))
+                    .cornerRadius(12)
+            }
+
+            Divider()
+
+            // 命中项列表：前 3 项
+            let previewMatches = Array(group.matches.prefix(3))
+            ForEach(Array(previewMatches.enumerated()), id: \.offset) { item in
+                NavigationLink(destination: ReaderView(document: group.document, initialPage: item.element.page, terms: [query])) {
+                    matchRow(page: item.element.page, text: item.element.text)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // 超出部分折叠展开
+            if group.matches.count > 3 {
+                if group.isExpanded {
+                    let remainingMatches = Array(group.matches.dropFirst(3))
+                    ForEach(Array(remainingMatches.enumerated()), id: \.offset) { item in
+                        NavigationLink(destination: ReaderView(document: group.document, initialPage: item.element.page, terms: [query])) {
+                            matchRow(page: item.element.page, text: item.element.text)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        group.isExpanded.toggle()
+                    }
+                }) {
+                    HStack {
+                        Spacer()
+                        Text(group.isExpanded ? "收起 ▴" : "展开其余 \(group.matches.count - 3) 处匹配 ▾")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    .padding(.vertical, 6)
+                    .background(Color.primary.opacity(0.03))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding()
+        .background(Color.white.opacity(0.95))
+        .cornerRadius(14)
+        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+    }
+
+    private func matchRow(page: Int, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("第 \(page) 页")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color(red: 0.19, green: 0.36, blue: 0.96))
+                Spacer()
+                Text("查看页面 →")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            Text(snippet(from: text, query: query))
+                .font(.footnote)
+                .foregroundColor(.primary.opacity(0.85))
+                .lineLimit(2)
+        }
+        .padding(8)
+        .background(Color.primary.opacity(0.02))
+        .cornerRadius(8)
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.06), lineWidth: 1))
     }
 
     private func snippet(from text: String, query: String) -> String {

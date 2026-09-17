@@ -5,7 +5,7 @@ const MAX_MANIFEST_BYTES = 1024 * 1024;
 const MAX_ENTRY_BYTES = 2 * 1024 * 1024 * 1024;
 const MAX_JSON_LINE_LENGTH = 16 * 1024 * 1024;
 const IMPORT_BATCH_SIZE = 300;
-const INITIAL_RESULT_LIMIT = 60;
+const INITIAL_RESULT_LIMIT = 20;
 
 const packageInput = document.getElementById('packageInput');
 const openLibraryButton = document.getElementById('openLibraryButton');
@@ -753,6 +753,28 @@ async function scanPages(terms, generation) {
   });
 }
 
+const DOC_CATEGORY_LABELS = {
+  book: '书籍',
+  paper: '论文',
+  ancient_book: '古籍',
+  archive: '档案',
+  journal: '期刊',
+  newspaper: '报纸',
+};
+
+function documentCategoryLabel(cat) {
+  if (!cat) return '';
+  return DOC_CATEGORY_LABELS[cat] || cat;
+}
+
+function documentGroupMeta(doc) {
+  const parts = [];
+  if (doc?.author) parts.push(doc.author);
+  if (doc?.publisher) parts.push(doc.publisher);
+  if (doc?.year) parts.push(doc.year);
+  return parts.join(' · ');
+}
+
 function documentMeta(documentRecord, page) {
   const parts = [];
   if (documentRecord?.author) parts.push(documentRecord.author);
@@ -761,42 +783,211 @@ function documentMeta(documentRecord, page) {
   return parts.join(' · ');
 }
 
-function sortedResults(pages, documents, terms) {
-  const sortMode = searchSort.value;
-  return [...pages].sort((left, right) => {
-    const leftDoc = documents.get(left.document_id) || {title: ''};
-    const rightDoc = documents.get(right.document_id) || {title: ''};
-    const titleCompare = (leftDoc.title || '').localeCompare(rightDoc.title || '', 'zh-CN');
-    if (sortMode === 'document') return titleCompare || left.page - right.page;
-    if (sortMode === 'page') return left.page - right.page || titleCompare;
-    const leftTitle = (leftDoc.title || '').normalize('NFKC').toLocaleLowerCase();
-    const rightTitle = (rightDoc.title || '').normalize('NFKC').toLocaleLowerCase();
-    const leftScore = (left._score || 0) + terms.reduce((score, term) => score + countOccurrences(leftTitle, term) * 5, 0);
-    const rightScore = (right._score || 0) + terms.reduce((score, term) => score + countOccurrences(rightTitle, term) * 5, 0);
-    return rightScore - leftScore || titleCompare || left.page - right.page;
-  });
+function extractPublicationYear(doc) {
+  const match = String(doc?.year || '').match(/\d{4}/);
+  return match ? parseInt(match[0], 10) : 0;
+}
+
+function groupSearchResults(pages, documents, previewLimit = 3) {
+  const groupsMap = new Map();
+  for (const page of pages) {
+    let group = groupsMap.get(page.document_id);
+    if (!group) {
+      const doc = documents.get(page.document_id) || {
+        id: page.document_id,
+        title: '未命名文档',
+        author: '',
+        publisher: '',
+        year: '',
+        category: '',
+      };
+      group = {
+        document: doc,
+        document_id: page.document_id,
+        title: doc.title || '未命名文档',
+        matches: [],
+      };
+      groupsMap.set(page.document_id, group);
+    }
+    group.matches.push(page);
+  }
+
+  const groups = Array.from(groupsMap.values());
+  for (const group of groups) {
+    group.matches.sort((a, b) => a.page - b.page);
+    group.matchCount = group.matches.length;
+    group.previewMatches = group.matches.slice(0, previewLimit);
+    group.remainingMatches = group.matches.slice(previewLimit);
+    group.remainingCount = group.remainingMatches.length;
+  }
+  return groups;
+}
+
+function sortSearchResultGroups(groups, sortMode, terms = []) {
+  if (sortMode === 'title_asc') {
+    return [...groups].sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'));
+  }
+  if (sortMode === 'title_desc') {
+    return [...groups].sort((a, b) => b.title.localeCompare(a.title, 'zh-CN'));
+  }
+  if (sortMode === 'match_count') {
+    return [...groups].sort((a, b) => {
+      const aTitle = a.title.normalize('NFKC').toLocaleLowerCase();
+      const bTitle = b.title.normalize('NFKC').toLocaleLowerCase();
+      const aTitleHits = terms.reduce((acc, t) => acc + (aTitle.includes(t) ? 1 : 0), 0);
+      const bTitleHits = terms.reduce((acc, t) => acc + (bTitle.includes(t) ? 1 : 0), 0);
+      const aWeighted = a.matchCount + aTitleHits * 10;
+      const bWeighted = b.matchCount + bTitleHits * 10;
+      return bWeighted - aWeighted || b.matchCount - a.matchCount || a.title.localeCompare(b.title, 'zh-CN');
+    });
+  }
+  if (sortMode === 'year_desc' || sortMode === 'year_asc') {
+    const dated = [];
+    const undated = [];
+    for (const group of groups) {
+      if (extractPublicationYear(group.document)) {
+        dated.push(group);
+      } else {
+        undated.push(group);
+      }
+    }
+    if (sortMode === 'year_desc') {
+      dated.sort((a, b) => extractPublicationYear(b.document) - extractPublicationYear(a.document) || a.title.localeCompare(b.title, 'zh-CN'));
+    } else {
+      dated.sort((a, b) => extractPublicationYear(a.document) - extractPublicationYear(b.document) || a.title.localeCompare(b.title, 'zh-CN'));
+    }
+    undated.sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'));
+    return dated.concat(undated);
+  }
+  if (sortMode === 'latest') {
+    const docIndexMap = new Map(allDocuments.map((doc, idx) => [doc.id, idx]));
+    return [...groups].sort((a, b) => {
+      const idxA = docIndexMap.has(a.document_id) ? docIndexMap.get(a.document_id) : 999999;
+      const idxB = docIndexMap.has(b.document_id) ? docIndexMap.get(b.document_id) : 999999;
+      return idxA - idxB;
+    });
+  }
+  return [...groups].sort((a, b) => b.matchCount - a.matchCount || a.title.localeCompare(b.title, 'zh-CN'));
 }
 
 function renderResults(pages, documents, terms, limit) {
   resultList.replaceChildren();
-  const orderedPages = sortedResults(pages, documents, terms);
-  for (const page of orderedPages.slice(0, limit)) {
-    const documentRecord = documents.get(page.document_id) || {title: '未命名文档'};
-    const card = document.createElement('button');
-    card.type = 'button';
-    card.className = 'result-card';
+  const sortMode = searchSort.value || 'match_count';
+  const groups = groupSearchResults(pages, documents, 3);
+  const orderedGroups = sortSearchResultGroups(groups, sortMode, terms);
+
+  for (const group of orderedGroups.slice(0, limit)) {
+    const card = document.createElement('article');
+    card.className = 'search-group-card';
+
+    // 头部：分类标签、书名、责任者与出版年代、命中总数
+    const header = document.createElement('div');
+    header.className = 'search-group-header';
+
+    const info = document.createElement('div');
+    info.className = 'search-group-info';
+
+    const titleRow = document.createElement('div');
+    titleRow.className = 'search-group-title-row';
+
+    const catLabel = documentCategoryLabel(group.document.category);
+    if (catLabel) {
+      const catBadge = document.createElement('span');
+      catBadge.className = 'search-group-cat';
+      catBadge.textContent = catLabel;
+      titleRow.append(catBadge);
+    }
+
     const title = document.createElement('h3');
-    title.textContent = documentRecord.title;
-    const meta = document.createElement('div');
-    meta.className = 'result-meta';
-    meta.textContent = documentMeta(documentRecord, page.page);
-    const snippet = document.createElement('p');
-    snippet.append(highlightedFragment(makeSnippet(page.text, terms), terms));
-    card.append(title, meta, snippet);
-    card.addEventListener('click', () => openReader(documentRecord, page.page, terms));
+    title.className = 'search-group-title';
+    title.textContent = group.title;
+    title.title = '轻触查看文献详情';
+    title.addEventListener('click', () => openDocDrawer(group.document));
+    titleRow.append(title);
+    info.append(titleRow);
+
+    const metaText = documentGroupMeta(group.document);
+    if (metaText) {
+      const meta = document.createElement('div');
+      meta.className = 'search-group-meta';
+      meta.textContent = metaText;
+      info.append(meta);
+    }
+
+    const countBadge = document.createElement('span');
+    countBadge.className = 'search-group-count';
+    countBadge.textContent = `共 ${group.matchCount} 处匹配`;
+
+    header.append(info, countBadge);
+    card.append(header);
+
+    // 命中列表
+    const matchesContainer = document.createElement('div');
+    matchesContainer.className = 'search-group-matches';
+
+    const createMatchButton = (match) => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'search-match-item';
+
+      const matchHeader = document.createElement('div');
+      matchHeader.className = 'search-match-header';
+
+      const pageLabel = document.createElement('span');
+      pageLabel.textContent = `第 ${match.page} 页`;
+
+      const jumpHint = document.createElement('span');
+      jumpHint.className = 'search-match-arrow';
+      jumpHint.textContent = '查看页面 →';
+
+      matchHeader.append(pageLabel, jumpHint);
+
+      const snippet = document.createElement('p');
+      snippet.className = 'search-match-snippet';
+      snippet.append(highlightedFragment(makeSnippet(match.text, terms), terms));
+
+      item.append(matchHeader, snippet);
+      item.addEventListener('click', () => openReader(group.document, match.page, terms));
+      return item;
+    };
+
+    // 前 3 条命中预览
+    for (const match of group.previewMatches) {
+      matchesContainer.append(createMatchButton(match));
+    }
+
+    // 超出 3 条折叠展开
+    if (group.remainingCount > 0) {
+      const remainingContainer = document.createElement('div');
+      remainingContainer.className = 'search-remaining-container';
+      remainingContainer.hidden = true;
+
+      for (const match of group.remainingMatches) {
+        remainingContainer.append(createMatchButton(match));
+      }
+
+      const expandBtn = document.createElement('button');
+      expandBtn.type = 'button';
+      expandBtn.className = 'search-expand-button';
+      expandBtn.textContent = `展开其余 ${group.remainingCount} 处匹配 ▾`;
+
+      expandBtn.addEventListener('click', () => {
+        const isHidden = remainingContainer.hidden;
+        remainingContainer.hidden = !isHidden;
+        expandBtn.textContent = isHidden ? '收起 ▴' : `展开其余 ${group.remainingCount} 处匹配 ▾`;
+      });
+
+      matchesContainer.append(remainingContainer, expandBtn);
+    }
+
+    card.append(matchesContainer);
     resultList.append(card);
   }
-  loadMoreButton.hidden = pages.length <= limit;
+
+  loadMoreButton.hidden = orderedGroups.length <= limit;
+  if (!loadMoreButton.hidden) {
+    loadMoreButton.textContent = `继续显示更多文献（当前已显示 ${Math.min(orderedGroups.length, limit)} / ${orderedGroups.length} 部）`;
+  }
 }
 
 async function runSearch() {
@@ -818,10 +1009,13 @@ async function runSearch() {
     const pages = await scanPages(terms, generation);
     if (generation !== searchGeneration) return;
     const documents = await getDocuments(Array.from(new Set(pages.map(page => page.document_id))));
-    cachedSearch = {query, pages, documents, terms};
+    const groups = groupSearchResults(pages, documents, 3);
+    cachedSearch = {query, pages, documents, terms, groups};
     renderResults(pages, documents, terms, resultLimit);
     searchSummary.textContent = pages.length
-      ? `共找到 ${pages.length.toLocaleString()} 条相关页面，当前显示 ${Math.min(pages.length, resultLimit).toLocaleString()} 条`
+      ? (groups.length > resultLimit
+          ? `共在 ${groups.length.toLocaleString()} 部文献中找到 ${pages.length.toLocaleString()} 处匹配，当前显示前 ${Math.min(groups.length, resultLimit).toLocaleString()} 部`
+          : `共在 ${groups.length.toLocaleString()} 部文献中找到 ${pages.length.toLocaleString()} 处匹配`)
       : '未找到匹配所有关键词的页面';
   } catch (error) {
     searchSummary.textContent = `检索失败：${error.message}`;
@@ -1000,7 +1194,10 @@ loadMoreButton.addEventListener('click', () => {
   searchInput.value = lastQuery;
   if (cachedSearch?.query === lastQuery) {
     renderResults(cachedSearch.pages, cachedSearch.documents, cachedSearch.terms, resultLimit);
-    searchSummary.textContent = `共找到 ${cachedSearch.pages.length.toLocaleString()} 条相关页面，当前显示 ${Math.min(cachedSearch.pages.length, resultLimit).toLocaleString()} 条`;
+    const groups = cachedSearch.groups || groupSearchResults(cachedSearch.pages, cachedSearch.documents, 3);
+    searchSummary.textContent = groups.length > resultLimit
+      ? `共在 ${groups.length.toLocaleString()} 部文献中找到 ${cachedSearch.pages.length.toLocaleString()} 处匹配，当前显示前 ${Math.min(groups.length, resultLimit).toLocaleString()} 部`
+      : `共在 ${groups.length.toLocaleString()} 部文献中找到 ${cachedSearch.pages.length.toLocaleString()} 处匹配`;
   } else {
     runSearch();
   }

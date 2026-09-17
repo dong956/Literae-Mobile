@@ -8,7 +8,7 @@ Literae Mobile is the lightweight, privacy-first companion to the Literae deskto
 - **Private local storage:** imported data stays in IndexedDB in the selected browser; no library text is uploaded to a server.
 - **Bookshelf and filters:** browse titles by category and tag.
 - **Search inside one document:** find a term within the selected book and jump directly to a matching page.
-- **Library-wide search:** search every imported document and sort results by relevance, title, or page number.
+- **Library-wide search:** search every imported document with grouped matches per title and standard sorting (matches count, latest, title, publish year).
 - **Readable themes:** paper, soft white, and dark reading modes with adjustable text size.
 - **Citation copy:** copy a short quotation with title, author, year, and page information.
 - **Native projects included:** SwiftUI source for Xcode and a Swift Playgrounds package for iPad.

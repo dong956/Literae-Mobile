@@ -309,7 +309,167 @@ h4 { font-size: 0.95rem; color: var(--muted); }
 .search-options { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: 10px 2px 2px; color: var(--muted); font-size: 0.84rem; }
 .search-options select { min-height: 34px; padding: 0 28px 0 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--paper-light); }
 
-.result-list { display: grid; gap: 12px; }
+.result-list { display: grid; gap: 14px; }
+
+/* 全库检索聚合卡片 */
+.search-group-card {
+  width: 100%;
+  padding: 16px 16px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  text-align: left;
+  color: inherit;
+  background: var(--paper-card);
+  box-shadow: 0 4px 16px rgba(32, 58, 92, 0.05);
+  box-sizing: border-box;
+}
+
+.search-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.search-group-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.search-group-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.search-group-title {
+  margin: 0;
+  font-size: 1.06rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.search-group-title:hover {
+  color: var(--accent);
+}
+
+.search-group-cat {
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(32, 58, 92, 0.08);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.search-group-meta {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.search-group-count {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(184, 51, 42, 0.08);
+  border: 1px solid rgba(184, 51, 42, 0.18);
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* 文献内部命中条目 */
+.search-group-matches {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+  border-top: 1px dashed var(--line);
+  padding-top: 12px;
+}
+
+.search-match-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--paper-light);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: transform 120ms ease, background-color 120ms ease;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+.search-match-item:active {
+  transform: scale(0.99);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.search-match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.search-match-arrow {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: normal;
+}
+
+.search-match-snippet {
+  margin: 0;
+  color: var(--ink);
+  opacity: 0.9;
+  line-height: 1.62;
+  font-size: 0.88rem;
+}
+
+.search-remaining-container {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.search-remaining-container[hidden] {
+  display: none;
+}
+
+.search-expand-button {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 150ms ease;
+}
+
+.search-expand-button:active,
+.search-expand-button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(184, 51, 42, 0.04);
+}
 
 .result-card {
   width: 100%;

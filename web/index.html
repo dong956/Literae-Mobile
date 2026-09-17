@@ -90,9 +90,12 @@
         <div class="search-options">
           <label for="searchSort">结果排序</label>
           <select id="searchSort">
-            <option value="relevance">匹配度优先</option>
-            <option value="document">按书名</option>
-            <option value="page">按页码</option>
+            <option value="match_count">匹配数（多到少）</option>
+            <option value="latest">最近导入</option>
+            <option value="title_asc">题名（正序）</option>
+            <option value="title_desc">题名（倒序）</option>
+            <option value="year_desc">出版时间（新到旧）</option>
+            <option value="year_asc">出版时间（旧到新）</option>
           </select>
         </div>
 
