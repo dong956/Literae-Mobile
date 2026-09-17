@@ -42,6 +42,14 @@ body.theme-night {
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
 
+/* 对话框通用层叠重置：未打开时强制隐藏，确保在 Safari/Chrome/iOS/Android/Mac 均不流入页面 */
+dialog:not([open]),
+.reader:not([open]),
+.doc-drawer:not([open]),
+.guide-dialog:not([open]) {
+  display: none !important;
+}
+
 html { background: var(--paper); }
 
 body {
@@ -108,10 +116,11 @@ h4 { font-size: 0.95rem; color: var(--muted); }
 .import-card {
   position: relative;
   overflow: hidden;
-  margin-top: min(8vh, 64px);
-  padding: clamp(24px, 6vw, 48px);
+  max-width: 660px;
+  margin: min(8vh, 56px) auto 0;
+  padding: clamp(24px, 5vw, 44px);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--paper-card);
   box-shadow: var(--shadow);
 }
@@ -592,16 +601,22 @@ mark { padding: 0 0.12em; color: inherit; background: #f6d177; border-radius: 2p
 
 /* 单书详情抽屉 */
 .doc-drawer {
+  display: none;
+}
+
+.doc-drawer[open] {
   width: min(620px, 100%);
   height: 100%;
-  max-width: none;
-  max-height: none;
+  max-width: 100vw;
+  max-height: 100vh;
   margin: 0 0 0 auto;
   padding: 0;
   border: 0;
   color: var(--ink);
   background: var(--paper-light);
   box-shadow: -10px 0 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
 }
 
 .doc-drawer::backdrop { background: rgba(20, 18, 14, 0.45); backdrop-filter: blur(4px); }
@@ -729,15 +744,20 @@ mark { padding: 0 0.12em; color: inherit; background: #f6d177; border-radius: 2p
 
 /* 沉浸式阅读器 */
 .reader {
+  display: none;
+}
+
+.reader[open] {
   width: min(880px, 100%);
   height: 100%;
-  max-width: none;
-  max-height: none;
+  max-width: 100vw;
+  max-height: 100vh;
   margin: 0 0 0 auto;
   padding: 0;
   border: 0;
   color: var(--ink);
   background: var(--paper-light);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
 }
@@ -851,7 +871,7 @@ mark { padding: 0 0.12em; color: inherit; background: #f6d177; border-radius: 2p
 @media (min-width: 680px) {
   .shelf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .result-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .reader, .doc-drawer { height: calc(100% - 32px); margin-top: 16px; border-radius: 24px 0 0 24px; }
+  .reader[open], .doc-drawer[open] { height: calc(100% - 32px); margin-top: 16px; border-radius: 24px 0 0 24px; }
 }
 
 @media (min-width: 960px) {
@@ -892,7 +912,8 @@ mark { padding: 0 0.12em; color: inherit; background: #f6d177; border-radius: 2p
   flex-shrink: 0;
 }
 
-.guide-dialog { width: min(680px, calc(100% - 24px)); max-height: min(88vh, 820px); padding: 0; border: 1px solid var(--line); border-radius: 18px; color: var(--ink); background: var(--paper-light); box-shadow: 0 24px 70px rgba(23, 34, 56, 0.26); }
+.guide-dialog { display: none; }
+.guide-dialog[open] { display: block; width: min(680px, calc(100% - 24px)); max-height: min(88vh, 820px); margin: auto; padding: 0; border: 1px solid var(--line); border-radius: 18px; color: var(--ink); background: var(--paper-light); box-shadow: 0 24px 70px rgba(23, 34, 56, 0.26); }
 .guide-dialog::backdrop { background: rgba(23, 34, 56, 0.42); backdrop-filter: blur(3px); }
 .guide-header { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; padding: 17px 20px; border-bottom: 1px solid var(--line); background: var(--paper-light); z-index: 2; }
 .guide-header p { margin: 0 0 2px; color: var(--accent); font-size: 0.76rem; font-weight: 700; }
